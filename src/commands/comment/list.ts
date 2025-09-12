@@ -50,12 +50,12 @@ static flags = {
       
       // Output results
       if (flags.json) {
-        const output = comments.nodes.map((comment: Comment) => ({
+        const output = await Promise.all(comments.nodes.map(async (comment: Comment) => ({
           body: comment.body,
           createdAt: comment.createdAt instanceof Date ? comment.createdAt.toISOString() : comment.createdAt,
           id: comment.id,
-          user: comment.user ? { name: comment.user.name } : null,
-        }))
+          user: comment.user ? { name: (await comment.user)?.name } : null,
+        })))
         console.log(JSON.stringify(output, null, 2))
       } else {
         if (comments.nodes.length === 0) {

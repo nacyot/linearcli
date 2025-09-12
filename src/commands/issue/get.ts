@@ -88,10 +88,11 @@ static flags = {
     }
   }
 
-  private displayIssue(issue: {createdAt: string; description?: string; identifier: string; title: string; url?: string}, related: {
+  private displayIssue(issue: {createdAt: Date | string; description?: string; identifier: string; title: string; updatedAt: Date | string; url?: string}, related: {
     assignee?: {name: string};
     attachments?: {nodes: Array<{title: string; url: string}>};
     children?: {nodes: Array<{identifier: string; title: string}>};
+    comments?: {nodes: Array<{id: string}>};
     dueDate?: string;
     labels?: {nodes: Array<{name: string}>};
     parent?: {identifier: string; title: string};

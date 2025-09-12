@@ -36,7 +36,7 @@ static description = 'Get a specific document by ID or slug'
     await this.runWithArgs([args.id].filter(Boolean) as string[], flags)
   }
 
-  async runWithArgs(args: string[], flags: CommonFlags): Promise<void> {
+  async runWithArgs(args: string[], flags: CommonFlags & {content?: boolean}): Promise<void> {
     // Check API key
     if (!hasApiKey()) {
       throw new Error('No API key configured. Run "lc init" first.')

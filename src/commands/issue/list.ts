@@ -10,7 +10,7 @@ import { formatState, formatTable, truncateText } from '../../utils/table-format
 interface EnrichedIssue {
   assignee?: null | { name?: string }
   identifier: string
-  state: { name?: string, type?: string }
+  state?: { name?: string, type?: string }
   title: string
 }
 
@@ -123,7 +123,7 @@ static flags = {
         includeArchived?: boolean
         orderBy?: LinearDocument.PaginationOrderBy
       } = {
-        first: Math.min(flags.limit > 0 ? flags.limit : 50, 250),
+        first: Math.min(flags.limit && flags.limit > 0 ? flags.limit : 50, 250),
         includeArchived: flags['include-archived'] || false,
         orderBy: flags['order-by'] === 'createdAt' 
           ? LinearDocument.PaginationOrderBy.CreatedAt 

@@ -43,7 +43,7 @@ static flags = {
     await this.runWithFlags(flags)
   }
 
-  async runWithFlags(flags: {active?: boolean; json?: boolean; limit?: number; query?: string}): Promise<void> {
+  async runWithFlags(flags: {active?: boolean; 'include-archived'?: boolean; json?: boolean; limit?: number; query?: string}): Promise<void> {
     // Check API key
     if (!hasApiKey()) {
       throw new Error('No API key configured. Run "lc init" first.')

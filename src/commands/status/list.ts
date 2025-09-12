@@ -47,6 +47,10 @@ static flags = {
       // Resolve team
       let team: null | TeamData = null
       
+      if (!flags.team) {
+        throw new Error('Team is required')
+      }
+      
       // Try by key first
       const teams = await client.teams({
         filter: { key: { eq: flags.team.toUpperCase() } },

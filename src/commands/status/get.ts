@@ -67,7 +67,12 @@ static description = 'Get workflow state details by ID or name'
       
       if (args[0]) {
         // Get by ID
-        state = await client.workflowState(args[0])
+        const stateResult = await client.workflowState(args[0])
+        const team = await stateResult.team
+        state = {
+          ...stateResult,
+          team: team || null
+        } as WorkflowStateData
       } else if (flags.name && flags.team) {
         // Get by name and team
         // First resolve team
@@ -101,14 +106,18 @@ static description = 'Get workflow state details by ID or name'
         const teamInstance = await client.team(teamId)
         const states = await teamInstance.states()
         const matchingState = states.nodes.find(
-          (s: WorkflowStateData) => s.name.toLowerCase() === flags.name!.toLowerCase()
+          (s) => s.name.toLowerCase() === flags.name!.toLowerCase()
         )
         
         if (!matchingState) {
           throw new Error(`State "${flags.name}" not found in team ${flags.team}`)
         }
         
-        state = matchingState
+        const team = await matchingState.team
+        state = {
+          ...matchingState,
+          team: team || null
+        } as WorkflowStateData
       } else if (flags.name && !flags.team) {
         throw new Error('Team is required when searching by name')
       } else {
