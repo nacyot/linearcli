@@ -43,11 +43,11 @@ describe('team list command', () => {
           name: 'Engineering',
         },
         {
-          description: 'Engineering team',
+          description: 'Product team',
           id: 'team-2',
-          key: 'ENG',
+          key: 'PROD',
           memberCount: 5,
-          name: 'Engineering',
+          name: 'Product',
         },
       ],
     }
@@ -61,8 +61,8 @@ describe('team list command', () => {
     expect(mockClient.teams).toHaveBeenCalled()
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('ENG'))
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Engineering'))
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('ENG'))
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Engineering'))
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('PROD'))
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Product'))
   })
 
   it('should handle JSON output', async () => {

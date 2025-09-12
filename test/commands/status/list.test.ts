@@ -121,14 +121,14 @@ describe('status list command', () => {
     
     const StatusList = (await import('../../../src/commands/status/list.js')).default
     const cmd = new StatusList([], {} as any)
-    await cmd.runWithFlags({ team: 'Engineering' })
+    await cmd.runWithFlags({ team: 'engineering' })
     
     expect(mockClient.teams).toHaveBeenCalledWith({
-      filter: { key: { eq: 'Engineering' } },
+      filter: { key: { eq: 'ENGINEERING' } },
       first: 1,
     })
     expect(mockClient.teams).toHaveBeenCalledWith({
-      filter: { name: { eqIgnoreCase: 'Engineering' } },
+      filter: { name: { eqIgnoreCase: 'engineering' } },
       first: 1,
     })
     expect(mockClient.team).toHaveBeenCalledWith('team-1')

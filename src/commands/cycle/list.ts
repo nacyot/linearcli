@@ -9,7 +9,7 @@ export default class CycleList extends Command {
 static examples = [
     '<%= config.bin %> <%= command.id %> --team ENG',
     '<%= config.bin %> <%= command.id %> --team ENG --type current',
-    '<%= config.bin %> <%= command.id %> --team Engineering --json',
+    '<%= config.bin %> <%= command.id %> --team ENG --json',
   ]
 static flags = {
     json: Flags.boolean({

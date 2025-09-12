@@ -8,7 +8,7 @@ export default class StatusList extends Command {
   static description = 'List workflow states for a team'
 static examples = [
     '<%= config.bin %> <%= command.id %> --team ENG',
-    '<%= config.bin %> <%= command.id %> --team Engineering --json',
+    '<%= config.bin %> <%= command.id %> --team ENG --json',
   ]
 static flags = {
     json: Flags.boolean({
