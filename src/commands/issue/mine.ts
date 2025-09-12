@@ -1,7 +1,9 @@
+import { Issue, LinearDocument } from '@linear/sdk'
 import { Command, Flags } from '@oclif/core'
 import chalk from 'chalk'
 
 import { getLinearClient, hasApiKey } from '../../services/linear.js'
+import { ListFlags } from '../../types/commands.js'
 import { formatState, formatTable } from '../../utils/table-formatter.js'
 
 export default class IssueMine extends Command {
@@ -36,7 +38,7 @@ static flags = {
     await this.runWithFlags(flags)
   }
 
-  async runWithFlags(flags: any): Promise<void> {
+  async runWithFlags(flags: ListFlags): Promise<void> {
     // Check API key
     if (!hasApiKey()) {
       throw new Error('No API key configured. Run "lc init" first.')
@@ -46,16 +48,21 @@ static flags = {
     
     try {
       // Build filter
-      const filter: any = {}
+      const filter: LinearDocument.IssueFilter = {}
       if (flags.state) {
         filter.state = { name: { eqIgnoreCase: flags.state } }
       }
       
       // Fetch assigned issues
-      const options: any = {
+      const options: {
+        filter?: LinearDocument.IssueFilter
+        first?: number
+        includeArchived?: boolean
+        orderBy?: LinearDocument.PaginationOrderBy
+      } = {
         first: flags.limit,
         includeArchived: flags['include-archived'],
-        orderBy: 'updatedAt',
+        orderBy: LinearDocument.PaginationOrderBy.UpdatedAt,
       }
       
       if (Object.keys(filter).length > 0) {
@@ -68,12 +75,13 @@ static flags = {
       
       // Output results
       if (flags.json) {
-        const output = await Promise.all(issues.nodes.map(async (issue: any) => {
+        const output = await Promise.all(issues.nodes.map(async (issue: Issue) => {
           const team = await issue.team
+          const state = await issue.state
           return {
             id: issue.id,
             identifier: issue.identifier,
-            state: issue.state ? { name: issue.state.name, type: issue.state.type } : null,
+            state: state ? { name: state.name, type: state.type } : null,
             team: team ? { key: team.key } : null,
             title: issue.title,
           }
@@ -89,19 +97,22 @@ static flags = {
         
         // Prepare table data
         const headers = ['ID', 'State', 'Title']
-        const rows = []
         
-        for (const issue of issues.nodes) {
-          const [team, state] = await Promise.all([
-            issue.team,
-            issue.state
-          ])
-          rows.push([
-            chalk.cyan(issue.identifier),
-            formatState(state),
-            issue.title
-          ])
-        }
+        // Fetch all teams and states in parallel
+        const issuesWithDetails = await Promise.all(
+          issues.nodes.map(async (issue: Issue) => ({
+            identifier: issue.identifier,
+            state: await issue.state,
+            team: await issue.team,
+            title: issue.title
+          }))
+        )
+        
+        const rows = issuesWithDetails.map(issue => [
+          chalk.cyan(issue.identifier),
+          formatState(issue.state),
+          issue.title
+        ])
         
         // Display table
         console.log(formatTable({ headers, rows }))

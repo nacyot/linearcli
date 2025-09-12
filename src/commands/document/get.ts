@@ -2,6 +2,7 @@ import { Args, Command, Flags } from '@oclif/core'
 import chalk from 'chalk'
 
 import { getLinearClient, hasApiKey } from '../../services/linear.js'
+import { CommonFlags } from '../../types/commands.js'
 import { formatDate } from '../../utils/table-formatter.js'
 
 export default class DocumentGet extends Command {
@@ -35,7 +36,7 @@ static description = 'Get a specific document by ID or slug'
     await this.runWithArgs([args.id].filter(Boolean) as string[], flags)
   }
 
-  async runWithArgs(args: string[], flags: any): Promise<void> {
+  async runWithArgs(args: string[], flags: CommonFlags): Promise<void> {
     // Check API key
     if (!hasApiKey()) {
       throw new Error('No API key configured. Run "lc init" first.')

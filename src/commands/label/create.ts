@@ -2,6 +2,23 @@ import { Command, Flags } from '@oclif/core'
 import chalk from 'chalk'
 
 import { getLinearClient, hasApiKey } from '../../services/linear.js'
+import { CreateLabelFlags } from '../../types/commands.js'
+
+// Types for Linear SDK label operations
+interface IssueLabelInput {
+  color: string
+  description?: string
+  name: string
+  teamId?: string
+}
+
+interface GraphQLError {
+  message: string
+}
+
+interface LinearError extends Error {
+  errors?: GraphQLError[]
+}
 
 export default class LabelCreate extends Command {
   static description = 'Create a new issue label'
@@ -40,7 +57,7 @@ export default class LabelCreate extends Command {
     await this.runWithFlags(flags)
   }
 
-  async runWithFlags(flags: any): Promise<void> {
+  async runWithFlags(flags: CreateLabelFlags & {'is-group'?: boolean}): Promise<void> {
     // Check API key
     if (!hasApiKey()) {
       throw new Error('No API key configured. Run "lc init" first.')
@@ -55,7 +72,7 @@ export default class LabelCreate extends Command {
     
     try {
       // Build label input
-      const input: any = {
+      const input: IssueLabelInput = {
         color: flags.color,
         name: flags.name,
       }
@@ -130,9 +147,10 @@ export default class LabelCreate extends Command {
       if (error instanceof Error) {
         // Check for admin permission error
         const errorMessage = error.message.toLowerCase()
-        const hasErrors = (error as any).errors
-        const needsAdmin = hasErrors && (error as any).errors.some(
-          (e: any) => e.message && e.message.toLowerCase().includes('admin')
+        const linearError = error as LinearError
+        const hasErrors = linearError.errors
+        const needsAdmin = hasErrors && linearError.errors?.some(
+          (e: GraphQLError) => e.message && e.message.toLowerCase().includes('admin')
         )
         
         if (needsAdmin || errorMessage.includes('admin')) {

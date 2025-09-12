@@ -1,8 +1,10 @@
+import type { User } from '@linear/sdk'
+
 import { Args, Command, Flags } from '@oclif/core'
 import chalk from 'chalk'
 
 import { getLinearClient, hasApiKey } from '../../services/linear.js'
-
+import { CommonFlags } from '../../types/commands.js'
 export default class UserGet extends Command {
   static args = {
     identifier: Args.string({
@@ -28,7 +30,7 @@ static flags = {
     await this.runWithArgs(args.identifier, flags)
   }
 
-  async runWithArgs(identifier: string, flags: any): Promise<void> {
+  async runWithArgs(identifier: string, flags: CommonFlags): Promise<void> {
     // Check API key
     if (!hasApiKey()) {
       throw new Error('No API key configured. Run "lc init" first.')
@@ -37,7 +39,7 @@ static flags = {
     const client = getLinearClient()
     
     try {
-      let user: any = null
+      let user: null | User = null
       
       // Handle "me" to get current user
       if (identifier.toLowerCase() === 'me') {
@@ -88,7 +90,7 @@ static flags = {
     }
   }
 
-  private async displayUser(user: any): Promise<void> {
+  private async displayUser(user: User): Promise<void> {
     console.log('')
     
     // Header
@@ -98,8 +100,11 @@ static flags = {
     // Basic info
     const info = []
     
-    info.push(`Email: ${user.email}`, `ID: ${user.id}`)
-    info.push(`Status: ${user.active ? chalk.green('Active') : chalk.red('Inactive')}`)
+    info.push(
+      `Email: ${user.email}`,
+      `ID: ${user.id}`,
+      `Status: ${user.active ? chalk.green('Active') : chalk.red('Inactive')}`
+    )
     
     if (user.admin) {
       info.push(`Role: ${chalk.yellow('Admin')}`)

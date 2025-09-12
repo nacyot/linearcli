@@ -1,8 +1,9 @@
-import { IssueRelationType } from '@linear/sdk'
+import { Cycle, IssueRelationType, LinearClient, LinearDocument, WorkflowState } from '@linear/sdk'
 import { Command, Flags } from '@oclif/core'
 import chalk from 'chalk'
 
 import { getLinearClient, hasApiKey } from '../../services/linear.js'
+import { CreateIssueFlags } from '../../types/commands.js'
 
 export default class IssueCreate extends Command {
   static description = 'Create a new Linear issue'
@@ -67,7 +68,7 @@ static flags = {
     await this.runWithFlags(flags)
   }
 
-  async runWithFlags(flags: any): Promise<void> {
+  async runWithFlags(flags: CreateIssueFlags): Promise<void> {
     // Check API key
     if (!hasApiKey()) {
       throw new Error('No API key configured. Run "lc init" first.')
@@ -88,7 +89,7 @@ static flags = {
       }
 
       // Build issue create input
-      const input: any = {
+      const input: LinearDocument.IssueCreateInput = {
         teamId,
         title: flags.title,
       }
@@ -175,14 +176,21 @@ static flags = {
       // Resolve and add delegates if provided
       if (flags.delegate) {
         const delegates = flags.delegate.split(',').map((d: string) => d.trim())
-        const delegateIds: string[] = []
         
-        for (const delegate of delegates) {
-          const userId = await this.resolveUserId(client, delegate)
-          if (userId) {
-            delegateIds.push(userId)
+        // Resolve all delegate IDs in parallel
+        const delegateResults = await Promise.all(
+          delegates.map(async (delegate) => ({
+            delegate,
+            userId: await this.resolveUserId(client, delegate)
+          }))
+        )
+        
+        const delegateIds: string[] = []
+        for (const result of delegateResults) {
+          if (result.userId) {
+            delegateIds.push(result.userId)
           } else {
-            console.log(chalk.yellow(`Warning: Delegate "${delegate}" not found, skipping`))
+            console.log(chalk.yellow(`Warning: Delegate "${result.delegate}" not found, skipping`))
           }
         }
         
@@ -196,12 +204,23 @@ static flags = {
       if (flags.links) {
         const issueKeys = flags.links.split(',').map((k: string) => k.trim())
         
-        for (const issueKey of issueKeys) {
-          try {
-            const issue = await client.issue(issueKey)
-            relatedIssueIds.push(issue.id)
-          } catch {
-            console.log(chalk.yellow(`Warning: Issue "${issueKey}" not found, skipping`))
+        // Fetch all linked issues in parallel
+        const linkResults = await Promise.all(
+          issueKeys.map(async (issueKey) => {
+            try {
+              const issue = await client.issue(issueKey)
+              return { id: issue.id, issueKey, success: true }
+            } catch {
+              return { id: null, issueKey, success: false }
+            }
+          })
+        )
+        
+        for (const result of linkResults) {
+          if (result.success && result.id) {
+            relatedIssueIds.push(result.id)
+          } else {
+            console.log(chalk.yellow(`Warning: Issue "${result.issueKey}" not found, skipping`))
           }
         }
       }
@@ -224,7 +243,7 @@ static flags = {
             issueId: issue.id,
             relatedIssueId: relatedId,
             type: IssueRelationType.Related,
-          }).catch((error: any) => {
+          }).catch((error: Error) => {
             console.log(chalk.yellow(`Warning: Failed to create link: ${error.message}`))
             return null
           })
@@ -252,7 +271,7 @@ static flags = {
     }
   }
 
-  private async resolveCycleId(client: any, nameOrId: string, teamId: string): Promise<null | string> {
+  private async resolveCycleId(client: LinearClient, nameOrId: string, teamId: string): Promise<null | string> {
     if (nameOrId.includes('-')) {
       return nameOrId
     }
@@ -261,7 +280,7 @@ static flags = {
     const cycles = await team.cycles()
     
     // Try to match by name or number
-    const cycle = cycles.nodes.find((c: any) => 
+    const cycle = cycles.nodes.find((c: Cycle) => 
       c.name?.toLowerCase() === nameOrId.toLowerCase() ||
       c.number?.toString() === nameOrId
     )
@@ -269,28 +288,40 @@ static flags = {
     return cycle?.id || null
   }
 
-  private async resolveLabelIds(client: any, names: string[]): Promise<string[]> {
-    const labelIds: string[] = []
-    
-    for (const name of names) {
-      if (name.includes('-')) {
-        // Looks like an ID
-        labelIds.push(name)
-      } else {
-        // Look up by name
-        const labels = await client.issueLabels({
-          filter: { name: { eqIgnoreCase: name } },
-        })
-        if (labels.nodes.length > 0) {
-          labelIds.push(labels.nodes[0].id)
+  private async resolveLabelIds(client: LinearClient, names: string[]): Promise<string[]> {
+    // Resolve all label IDs in parallel
+    const labelResults = await Promise.all(
+      names.map(async (name) => {
+        if (name.includes('-')) {
+          // Looks like an ID
+          return { id: name, name, success: true }
         }
-      }
-    }
+ 
+          // Look up by name
+          try {
+            const labels = await client.issueLabels({
+              filter: { name: { eqIgnoreCase: name } },
+            })
+            if (labels.nodes.length > 0) {
+              return { id: labels.nodes[0].id, name, success: true }
+            }
+ 
+              return { id: null, name, success: false }
+            
+          } catch {
+            return { id: null, name, success: false }
+          }
+        
+      })
+    )
     
-    return labelIds
+    // Extract successful IDs
+    return labelResults
+      .filter(result => result.success && result.id)
+      .map(result => result.id!)
   }
 
-  private async resolveProjectId(client: any, nameOrId: string, teamId: string): Promise<null | string> {
+  private async resolveProjectId(client: LinearClient, nameOrId: string, _teamId: string): Promise<null | string> {
     if (nameOrId.includes('-')) {
       return nameOrId
     }
@@ -298,14 +329,13 @@ static flags = {
     const projects = await client.projects({
       filter: { 
         name: { eqIgnoreCase: nameOrId },
-        teams: { some: { id: { eq: teamId } } },
       },
     })
     
     return projects.nodes[0]?.id || null
   }
 
-  private async resolveStateId(client: any, nameOrId: string, teamId: string): Promise<null | string> {
+  private async resolveStateId(client: LinearClient, nameOrId: string, teamId: string): Promise<null | string> {
     if (nameOrId.includes('-')) {
       return nameOrId
     }
@@ -313,14 +343,14 @@ static flags = {
     const team = await client.team(teamId)
     const states = await team.states()
     
-    const state = states.nodes.find((s: any) => 
+    const state = states.nodes.find((s: WorkflowState) => 
       s.name.toLowerCase() === nameOrId.toLowerCase()
     )
     
     return state?.id || null
   }
 
-  private async resolveTeamId(client: any, nameOrId: string): Promise<null | string> {
+  private async resolveTeamId(client: LinearClient, nameOrId: string): Promise<null | string> {
     if (nameOrId.includes('-')) {
       return nameOrId
     }
@@ -343,7 +373,7 @@ static flags = {
     return teams.nodes[0]?.id || null
   }
 
-  private async resolveUserId(client: any, nameOrId: string): Promise<null | string> {
+  private async resolveUserId(client: LinearClient, nameOrId: string): Promise<null | string> {
     if (nameOrId.includes('-')) {
       return nameOrId
     }

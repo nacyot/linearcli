@@ -1,7 +1,10 @@
+import type { Project, Team } from '@linear/sdk'
+
 import { Command, Flags } from '@oclif/core'
 import chalk from 'chalk'
 
 import { getLinearClient, hasApiKey } from '../../services/linear.js'
+import { ListFlags } from '../../types/commands.js'
 import { formatDate, formatPercent, formatTable } from '../../utils/table-formatter.js'
 
 export default class ProjectList extends Command {
@@ -45,7 +48,7 @@ static flags = {
     await this.runWithFlags(flags)
   }
 
-  async runWithFlags(flags: any): Promise<void> {
+  async runWithFlags(flags: ListFlags & {initiative?: string; member?: string}): Promise<void> {
     // Check API key
     if (!hasApiKey()) {
       throw new Error('No API key configured. Run "lc init" first.')
@@ -55,13 +58,24 @@ static flags = {
     
     try {
       // Build options
-      const options: any = {
-        first: flags.limit,
-        includeArchived: flags['include-archived'],
+      interface ProjectOptions {
+        filter?: ProjectFilter
+        first: number
+        includeArchived: boolean
+      }
+      
+      interface ProjectFilter {
+        name?: { containsIgnoreCase: string }
+        state?: { eq: string }
+      }
+      
+      const options: ProjectOptions = {
+        first: flags.limit ?? 50,
+        includeArchived: flags['include-archived'] ?? false,
       }
       
       // Build filter
-      const filter: any = {}
+      const filter: ProjectFilter = {}
       
       // Filter by team if provided
       // Note: Project filtering by team is not directly supported,
@@ -114,16 +128,16 @@ static flags = {
         const teamChecks = await Promise.all(
           projects.nodes.map(async (project) => {
             const teams = await project.teams?.()
-            return teams?.nodes?.some((t: any) => t.id === teamFilter) ? project : null
+            return teams?.nodes?.some((t: Team) => t.id === teamFilter) ? project : null
           })
         )
         
-        filteredProjects = teamChecks.filter((p): p is any => p !== null)
+        filteredProjects = teamChecks.filter((p): p is Project => p !== null)
       }
       
       // Output results
       if (flags.json) {
-        const output = filteredProjects.map((project: any) => ({
+        const output = filteredProjects.map((project: Project) => ({
           description: project.description,
           id: project.id,
           name: project.name,
@@ -142,7 +156,7 @@ static flags = {
         
         // Prepare table data
         const headers = ['Name', 'State', 'Progress', 'Target Date']
-        const rows = filteredProjects.map((project: any) => [
+        const rows = filteredProjects.map((project: Project) => [
           project.name || '-',
           this.formatState(project.state),
           formatPercent(project.progress),

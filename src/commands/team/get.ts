@@ -1,8 +1,10 @@
+import type { IssueLabel, Team } from '@linear/sdk'
+
 import { Args, Command, Flags } from '@oclif/core'
 import chalk from 'chalk'
 
 import { getLinearClient, hasApiKey } from '../../services/linear.js'
-
+import { CommonFlags } from '../../types/commands.js'
 export default class TeamGet extends Command {
   static args = {
     identifier: Args.string({
@@ -28,7 +30,7 @@ static flags = {
     await this.runWithArgs(args.identifier, flags)
   }
 
-  async runWithArgs(identifier: string, flags: any): Promise<void> {
+  async runWithArgs(identifier: string, flags: CommonFlags): Promise<void> {
     // Check API key
     if (!hasApiKey()) {
       throw new Error('No API key configured. Run "lc init" first.')
@@ -37,7 +39,7 @@ static flags = {
     const client = getLinearClient()
     
     try {
-      let team: any = null
+      let team: null | Team = null
       
       // Try to get by ID if it looks like a UUID
       if (identifier.includes('-')) {
@@ -82,7 +84,7 @@ static flags = {
     }
   }
 
-  private async displayTeam(team: any): Promise<void> {
+  private async displayTeam(team: Team): Promise<void> {
     console.log('')
     
     // Header
@@ -94,8 +96,8 @@ static flags = {
     
     info.push(`ID: ${team.id}`)
     
-    if (team.cycleEnabled !== undefined) {
-      info.push(`Cycles: ${team.cycleEnabled ? 'Enabled' : 'Disabled'}`)
+    if (team.cyclesEnabled !== undefined) {
+      info.push(`Cycles: ${team.cyclesEnabled ? 'Enabled' : 'Disabled'}`)
     }
     
     console.log(info.join(chalk.gray(' • ')))
@@ -120,7 +122,7 @@ static flags = {
     const labels = await team.labels?.()
     if (labels?.nodes?.length > 0) {
       console.log(chalk.gray('\n─ Team Labels ─'))
-      const labelNames = labels.nodes.map((l: any) => chalk.magenta(l.name))
+      const labelNames = labels.nodes.map((l: IssueLabel) => chalk.magenta(l.name))
       console.log(`  ${labelNames.join(', ')}`)
     }
     

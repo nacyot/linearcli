@@ -32,7 +32,7 @@ static flags = {
     await this.runWithArgs(args.issue, flags)
   }
 
-  async runWithArgs(issueId: string, flags: any): Promise<void> {
+  async runWithArgs(issueId: string, flags: {body: string; parent?: string}): Promise<void> {
     // Check API key
     if (!hasApiKey()) {
       throw new Error('No API key configured. Run "lc init" first.')
@@ -54,7 +54,7 @@ static flags = {
       }
       
       // Build comment input
-      const input: any = {
+      const input: {body: string; issueId: string; parentId?: string} = {
         body: flags.body,
         issueId: issue.id,
       }

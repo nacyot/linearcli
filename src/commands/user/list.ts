@@ -1,3 +1,5 @@
+import type { LinearDocument, User } from '@linear/sdk'
+
 import { Command, Flags } from '@oclif/core'
 import chalk from 'chalk'
 
@@ -41,7 +43,7 @@ static flags = {
     await this.runWithFlags(flags)
   }
 
-  async runWithFlags(flags: any): Promise<void> {
+  async runWithFlags(flags: {active?: boolean; json?: boolean; limit?: number; query?: string}): Promise<void> {
     // Check API key
     if (!hasApiKey()) {
       throw new Error('No API key configured. Run "lc init" first.')
@@ -51,7 +53,7 @@ static flags = {
     
     try {
       // Build options
-      const options: any = {
+      const options: LinearDocument.QueryUsersArgs = {
         first: flags.limit,
         includeArchived: flags['include-archived'],
       }
@@ -77,7 +79,7 @@ static flags = {
       
       // Output results
       if (flags.json) {
-        const output = users.nodes.map((user: any) => ({
+        const output = users.nodes.map((user: User) => ({
           active: user.active,
           admin: user.admin,
           email: user.email,
@@ -94,7 +96,7 @@ static flags = {
         console.log(chalk.bold.cyan('\n👤 Users in your workspace:'))
         
         const headers = ['Name', 'Email', 'Status', 'Role']
-        const rows = users.nodes.map((user: any) => [
+        const rows = users.nodes.map((user: User) => [
           user.name || '-',
           chalk.gray(user.email || '-'),
           user.active ? chalk.green('Active') : chalk.red('Inactive'),

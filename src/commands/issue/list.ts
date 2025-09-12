@@ -1,9 +1,18 @@
-import { LinearDocument } from '@linear/sdk'
+import { Issue, LinearClient, LinearDocument } from '@linear/sdk'
 import { Command, Flags } from '@oclif/core'
 import chalk from 'chalk'
 
 import { getLinearClient, hasApiKey } from '../../services/linear.js'
+import { ListFlags } from '../../types/commands.js'
 import { formatState, formatTable, truncateText } from '../../utils/table-formatter.js'
+
+// Type for issues with resolved assignee and state
+interface EnrichedIssue {
+  assignee?: null | { name?: string }
+  identifier: string
+  state: { name?: string, type?: string }
+  title: string
+}
 
 export default class IssueList extends Command {
   static description = 'List Linear issues'
@@ -63,7 +72,7 @@ static flags = {
     await this.runWithoutParse(flags)
   }
 
-  async runWithoutParse(flags: any): Promise<void> {
+  async runWithoutParse(flags: ListFlags): Promise<void> {
     // Check API key
     if (!hasApiKey()) {
       throw new Error('No API key configured. Run "lc init" first.')
@@ -108,7 +117,12 @@ static flags = {
       }
       
       // Prepare query variables
-      const variables: any = {
+      const variables: {
+        filter?: LinearDocument.IssueFilter
+        first?: number
+        includeArchived?: boolean
+        orderBy?: LinearDocument.PaginationOrderBy
+      } = {
         first: Math.min(flags.limit > 0 ? flags.limit : 50, 250),
         includeArchived: flags['include-archived'] || false,
         orderBy: flags['order-by'] === 'createdAt' 
@@ -126,7 +140,7 @@ static flags = {
       
       // Fetch state for each issue
       const issuesWithState = await Promise.all(
-        issues.nodes.map(async (issue: any) => ({
+        issues.nodes.map(async (issue: Issue) => ({
           ...issue,
           assignee: await issue.assignee,
           state: await issue.state
@@ -149,7 +163,7 @@ static flags = {
     }
   }
 
-  private displayIssues(issues: any[]): void {
+  private displayIssues(issues: EnrichedIssue[]): void {
     if (issues.length === 0) {
       console.log(chalk.yellow('No issues found'))
       return
@@ -170,7 +184,7 @@ static flags = {
     console.log(formatTable({ headers, rows }))
   }
 
-  private async resolveLabelId(client: any, nameOrId: string): Promise<null | string> {
+  private async resolveLabelId(client: LinearClient, nameOrId: string): Promise<null | string> {
     if (nameOrId.includes('-')) {
       return nameOrId
     }
@@ -182,7 +196,7 @@ static flags = {
     return labels.nodes[0]?.id || null
   }
 
-  private async resolveStateId(client: any, nameOrId: string): Promise<null | string> {
+  private async resolveStateId(client: LinearClient, nameOrId: string): Promise<null | string> {
     if (nameOrId.includes('-')) {
       return nameOrId
     }
@@ -194,7 +208,7 @@ static flags = {
     return states.nodes[0]?.id || null
   }
 
-  private async resolveTeamId(client: any, nameOrId: string): Promise<null | string> {
+  private async resolveTeamId(client: LinearClient, nameOrId: string): Promise<null | string> {
     // If it looks like an ID, return as is
     if (nameOrId.includes('-')) {
       return nameOrId
@@ -218,7 +232,7 @@ static flags = {
     return teams.nodes[0]?.id || null
   }
 
-  private async resolveUserId(client: any, nameOrId: string): Promise<null | string> {
+  private async resolveUserId(client: LinearClient, nameOrId: string): Promise<null | string> {
     if (nameOrId.includes('-')) {
       return nameOrId
     }

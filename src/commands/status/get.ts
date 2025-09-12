@@ -2,7 +2,25 @@ import { Args, Command, Flags } from '@oclif/core'
 import chalk from 'chalk'
 
 import { getLinearClient, hasApiKey } from '../../services/linear.js'
+import { CommonFlags } from '../../types/commands.js'
 
+// Interface for team data
+interface TeamData {
+  id: string
+  key: string
+  name: string
+}
+
+// Interface for workflow state data
+interface WorkflowStateData {
+  color?: string
+  description?: string
+  id: string
+  name: string
+  position: number
+  team: null | Promise<TeamData> | TeamData
+  type: string
+}
 export default class StatusGet extends Command {
   static args = {
     id: Args.string({
@@ -36,7 +54,7 @@ static description = 'Get workflow state details by ID or name'
     await this.runWithArgs([args.id].filter(Boolean) as string[], flags)
   }
 
-  async runWithArgs(args: string[], flags: any): Promise<void> {
+  async runWithArgs(args: string[], flags: CommonFlags & {name?: string; team?: string}): Promise<void> {
     // Check API key
     if (!hasApiKey()) {
       throw new Error('No API key configured. Run "lc init" first.')
@@ -45,7 +63,7 @@ static description = 'Get workflow state details by ID or name'
     const client = getLinearClient()
     
     try {
-      let state: any
+      let state: WorkflowStateData
       
       if (args[0]) {
         // Get by ID
@@ -83,7 +101,7 @@ static description = 'Get workflow state details by ID or name'
         const teamInstance = await client.team(teamId)
         const states = await teamInstance.states()
         const matchingState = states.nodes.find(
-          (s: any) => s.name.toLowerCase() === flags.name.toLowerCase()
+          (s: WorkflowStateData) => s.name.toLowerCase() === flags.name!.toLowerCase()
         )
         
         if (!matchingState) {
@@ -97,8 +115,8 @@ static description = 'Get workflow state details by ID or name'
         throw new Error('Either provide state ID as argument or use --name and --team flags')
       }
       
-      // Ensure we have team data
-      if (!state.team) {
+      // Ensure we have team data - resolve promise if needed
+      if (state.team && typeof (state.team as Promise<TeamData>).then === 'function') {
         state.team = await state.team
       }
       
@@ -112,7 +130,7 @@ static description = 'Get workflow state details by ID or name'
         console.log(chalk.gray('─'.repeat(40)))
         console.log(`ID: ${state.id}`)
         console.log(`Type: ${this.formatType(state.type)}`)
-        console.log(`Team: ${state.team.name} (${state.team.key})`)
+        console.log(`Team: ${(state.team as TeamData).name} (${(state.team as TeamData).key})`)
         console.log(`Position: ${state.position}`)
         console.log(`Color: ${color}`)
         

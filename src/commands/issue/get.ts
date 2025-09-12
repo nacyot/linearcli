@@ -2,6 +2,7 @@ import { Args, Command, Flags } from '@oclif/core'
 import chalk from 'chalk'
 
 import { getLinearClient, hasApiKey } from '../../services/linear.js'
+import { CommonFlags } from '../../types/commands.js'
 
 export default class IssueGet extends Command {
   static args = {
@@ -26,7 +27,7 @@ static flags = {
     await this.runWithArgs(args.id, flags)
   }
 
-  async runWithArgs(issueId: string, flags: any = {}): Promise<void> {
+  async runWithArgs(issueId: string, flags: CommonFlags = {}): Promise<void> {
     // Check API key
     if (!hasApiKey()) {
       throw new Error('No API key configured. Run "lc init" first.')
@@ -87,7 +88,19 @@ static flags = {
     }
   }
 
-  private displayIssue(issue: any, related: any): void {
+  private displayIssue(issue: {createdAt: string; description?: string; identifier: string; title: string; url?: string}, related: {
+    assignee?: {name: string};
+    attachments?: {nodes: Array<{title: string; url: string}>};
+    children?: {nodes: Array<{identifier: string; title: string}>};
+    dueDate?: string;
+    labels?: {nodes: Array<{name: string}>};
+    parent?: {identifier: string; title: string};
+    priority?: number;
+    project?: {name: string};
+    relatedIssues?: {nodes: Array<{identifier: string; title: string}>};
+    state?: {name: string; type?: string};
+    team?: {key: string; name: string;};
+  }): void {
     console.log('')
     
     // Header
@@ -119,7 +132,7 @@ static flags = {
     
     // Labels
     if (related.labels && related.labels.nodes.length > 0) {
-      const labelNames = related.labels.nodes.map((l: any) => chalk.magenta(l.name))
+      const labelNames = related.labels.nodes.map((l) => chalk.magenta(l.name))
       console.log(`Labels: ${labelNames.join(', ')}`)
     }
     
@@ -171,7 +184,7 @@ static flags = {
     })
   }
 
-  private formatState(state: any): string {
+  private formatState(state: {name: string; type?: string}): string {
     if (!state) return chalk.gray('Unknown')
     
     const name = state.name || 'Unknown'

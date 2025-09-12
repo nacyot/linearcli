@@ -1,8 +1,9 @@
+import { Project } from '@linear/sdk'
 import { Args, Command, Flags } from '@oclif/core'
 import chalk from 'chalk'
 
 import { getLinearClient, hasApiKey } from '../../services/linear.js'
-
+import { CommonFlags } from '../../types/commands.js'
 export default class ProjectGet extends Command {
   static args = {
     identifier: Args.string({
@@ -27,7 +28,7 @@ export default class ProjectGet extends Command {
     await this.runWithArgs(args.identifier, flags)
   }
 
-  async runWithArgs(identifier: string, flags: any): Promise<void> {
+  async runWithArgs(identifier: string, flags: CommonFlags): Promise<void> {
     // Check API key
     if (!hasApiKey()) {
       throw new Error('No API key configured. Run "lc init" first.')
@@ -36,7 +37,7 @@ export default class ProjectGet extends Command {
     const client = getLinearClient()
     
     try {
-      let project: any = null
+      let project: null | Project = null
       
       // Try to get by ID if it looks like a UUID
       if (identifier.includes('-')) {
@@ -82,7 +83,7 @@ export default class ProjectGet extends Command {
     return chalk.green('█'.repeat(filled)) + chalk.gray('░'.repeat(empty))
   }
 
-  private async displayProject(project: any): Promise<void> {
+  private async displayProject(project: Project): Promise<void> {
     console.log('')
     
     // Header
@@ -90,9 +91,10 @@ export default class ProjectGet extends Command {
     console.log(chalk.gray('─'.repeat(80)))
     
     // Basic info
-    const info = []
-    info.push(`ID: ${project.id}`)
-    info.push(`State: ${this.formatState(project.state)}`)
+    const info = [
+      `ID: ${project.id}`,
+      `State: ${this.formatState(project.state)}`,
+    ]
     
     if (project.progress !== undefined && project.progress !== null) {
       const progressBar = this.createProgressBar(project.progress, 20)

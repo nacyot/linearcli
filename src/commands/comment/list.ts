@@ -1,7 +1,9 @@
+import { Comment } from '@linear/sdk'
 import { Args, Command, Flags } from '@oclif/core'
 import chalk from 'chalk'
 
 import { getLinearClient, hasApiKey } from '../../services/linear.js'
+import { CommonFlags } from '../../types/commands.js'
 
 export default class CommentList extends Command {
   static args = {
@@ -27,7 +29,7 @@ static flags = {
     await this.runWithArgs(args.issue, flags)
   }
 
-  async runWithArgs(issueId: string, flags: any): Promise<void> {
+  async runWithArgs(issueId: string, flags: CommonFlags): Promise<void> {
     // Check API key
     if (!hasApiKey()) {
       throw new Error('No API key configured. Run "lc init" first.')
@@ -48,9 +50,9 @@ static flags = {
       
       // Output results
       if (flags.json) {
-        const output = comments.nodes.map((comment: any) => ({
+        const output = comments.nodes.map((comment: Comment) => ({
           body: comment.body,
-          createdAt: comment.createdAt,
+          createdAt: comment.createdAt instanceof Date ? comment.createdAt.toISOString() : comment.createdAt,
           id: comment.id,
           user: comment.user ? { name: comment.user.name } : null,
         }))
@@ -64,9 +66,16 @@ static flags = {
         console.log(chalk.bold.cyan(`\n💬 Comments on ${issue.identifier}: ${issue.title}`))
         console.log(chalk.gray('─'.repeat(80)))
         
-        for (const comment of comments.nodes) {
-          const user = await comment.user
-          const userName = user?.name || 'Unknown'
+        // Fetch all users in parallel
+        const commentsWithUsers = await Promise.all(
+          comments.nodes.map(async (comment: Comment) => ({
+            ...comment,
+            user: await comment.user
+          }))
+        )
+        
+        for (const comment of commentsWithUsers) {
+          const userName = comment.user?.name || 'Unknown'
           const date = this.formatDate(comment.createdAt)
           
           console.log(`\n${chalk.green(userName)} ${chalk.gray(`• ${date}`)}}`)

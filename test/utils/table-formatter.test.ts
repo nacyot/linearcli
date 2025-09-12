@@ -1,4 +1,3 @@
-import chalk from 'chalk'
 import { describe, expect, it } from 'vitest'
 
 import { formatDate, formatState, formatTable, truncateText } from '../../src/utils/table-formatter.js'

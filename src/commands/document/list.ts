@@ -1,8 +1,36 @@
+import { LinearDocument } from '@linear/sdk'
 import { Command, Flags } from '@oclif/core'
 import chalk from 'chalk'
 
 import { getLinearClient, hasApiKey } from '../../services/linear.js'
+import { ListFlags } from '../../types/commands.js'
 import { formatDate, formatTable, truncateText } from '../../utils/table-formatter.js'
+
+// Type definitions for document data structures
+interface DocumentFilter {
+  createdAt?: { gte: string }
+  creator?: { id: { eq: string } }
+  project?: { name: { eqIgnoreCase: string } }
+  title?: { containsIgnoreCase: string }
+  updatedAt?: { gte: string }
+}
+
+interface QueryVariables {
+  filter?: DocumentFilter
+  first: number
+  includeArchived: boolean
+  orderBy: LinearDocument.PaginationOrderBy
+}
+
+interface ProcessedDocument {
+  createdAt: Date | string
+  creator: { name?: string }
+  id: string
+  project?: null | { name?: string }
+  title: string
+  updatedAt: Date | string
+  url: string
+}
 
 export default class DocumentList extends Command {
   static description = 'List documents in your Linear workspace'
@@ -55,7 +83,7 @@ export default class DocumentList extends Command {
     await this.runWithFlags(flags)
   }
 
-  async runWithFlags(flags: any): Promise<void> {
+  async runWithFlags(flags: ListFlags & {creator?: string; initiative?: string}): Promise<void> {
     // Check API key
     if (!hasApiKey()) {
       throw new Error('No API key configured. Run "lc init" first.')
@@ -65,7 +93,7 @@ export default class DocumentList extends Command {
     
     try {
       // Build filters
-      const filter: any = {}
+      const filter: DocumentFilter = {}
       
       if (flags.project) {
         // Try to resolve project - for now just use name filter
@@ -125,10 +153,12 @@ export default class DocumentList extends Command {
       }
       
       // Build query variables
-      const variables: any = {
+      const variables: QueryVariables = {
         first: Math.min(flags.limit || 50, 250),
         includeArchived: flags['include-archived'] || false,
-        orderBy: flags['order-by'] || 'updatedAt',
+        orderBy: flags['order-by'] === 'createdAt' 
+          ? LinearDocument.PaginationOrderBy.CreatedAt 
+          : LinearDocument.PaginationOrderBy.UpdatedAt,
       }
       
       if (Object.keys(filter).length > 0) {
@@ -138,12 +168,15 @@ export default class DocumentList extends Command {
       // Fetch documents
       const documents = await client.documents(variables)
       
-      // Ensure we have all required data
-      const docsWithData = documents.nodes.map((doc: any) => ({
-        ...doc,
-        creator: doc.creator || { name: 'Unknown' },
-        project: doc.project || null,
-      }))
+      // Ensure we have all required data  
+      const docsWithData: ProcessedDocument[] = documents.nodes.map((doc: unknown) => {
+        const document = doc as ProcessedDocument
+        return {
+          ...document,
+          creator: document.creator || { name: 'Unknown' },
+          project: document.project || null,
+        }
+      })
       
       // Output results
       if (flags.json) {
@@ -159,10 +192,10 @@ export default class DocumentList extends Command {
         console.log(chalk.cyan(`\nFound ${docsWithData.length} document${docsWithData.length === 1 ? '' : 's'}:`))
         
         const headers = ['Title', 'Creator', 'Project', 'Updated']
-        const rows = docsWithData.map((doc: any) => [
+        const rows = docsWithData.map((doc: ProcessedDocument) => [
           truncateText(doc.title, 40),
           doc.creator.name || 'Unknown',
-          doc.project ? truncateText(doc.project.name, 20) : '-',
+          doc.project ? truncateText(doc.project.name || '', 20) : '-',
           formatDate(doc.updatedAt),
         ])
         

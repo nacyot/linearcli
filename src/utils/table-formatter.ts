@@ -31,7 +31,7 @@ export function formatTable(options: TableOptions): string {
       truncate: 100,
       wrapWord: false,
     })),
-    drawHorizontalLine(lineIndex: number, rowCount: number) {
+    drawHorizontalLine(lineIndex: number, _rowCount: number) {
       // Only draw line after header if showHeader is true
       return showHeader && lineIndex === 1
     },
@@ -87,7 +87,7 @@ export function truncateText(text: string, maxWidth: number): string {
 /**
  * Format state with appropriate color
  */
-export function formatState(state: any): string {
+export function formatState(state: null | undefined | {name?: string; type?: string}): string {
   if (!state) return chalk.gray('Unknown')
   
   const name = state.name || 'Unknown'
@@ -155,7 +155,7 @@ export function formatDate(date: Date | null | string | undefined): string {
   if (!date) return chalk.gray('-')
   
   const d = new Date(date)
-  if (isNaN(d.getTime())) return chalk.gray('-')
+  if (Number.isNaN(d.getTime())) return chalk.gray('-')
   
   return d.toLocaleDateString('en-US', {
     day: 'numeric',

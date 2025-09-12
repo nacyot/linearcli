@@ -2,7 +2,26 @@ import { Command, Flags } from '@oclif/core'
 import chalk from 'chalk'
 
 import { getLinearClient, hasApiKey } from '../../services/linear.js'
+import { ListFlags } from '../../types/commands.js'
 import { formatDate, formatPercent, formatTable } from '../../utils/table-formatter.js'
+
+// Type definitions for cycle data - simplified interface for what we actually use
+interface CycleData {
+  completedScopeHistory?: number[]
+  endsAt: Date | string
+  id: string
+  name?: string
+  number: number
+  progress?: null | number
+  scopeHistory?: number[]
+  startsAt: Date | string
+}
+
+interface TeamData {
+  id: string
+  key: string
+  name: string
+}
 
 export default class CycleList extends Command {
   static description = 'List cycles for a team'
@@ -38,7 +57,7 @@ static flags = {
     await this.runWithFlags(flags)
   }
 
-  async runWithFlags(flags: any): Promise<void> {
+  async runWithFlags(flags: ListFlags & {type?: string}): Promise<void> {
     // Check API key
     if (!hasApiKey()) {
       throw new Error('No API key configured. Run "lc init" first.')
@@ -48,7 +67,7 @@ static flags = {
     
     try {
       // Resolve team
-      let team: any = null
+      let team: null | TeamData = null
       
       // Try by key first
       const teams = await client.teams({
@@ -73,7 +92,7 @@ static flags = {
       
       // Get cycles for the team
       const teamInstance = await client.team(team.id)
-      let cycles: any
+      let cycles: { nodes: CycleData[] }
       
       switch (flags.type) {
       case 'current': {
@@ -111,7 +130,7 @@ static flags = {
       
       // Output results
       if (flags.json) {
-        const output = cycles.nodes.map((cycle: any) => ({
+        const output = cycles.nodes.map((cycle: CycleData) => ({
           completedScopeHistory: cycle.completedScopeHistory,
           endsAt: cycle.endsAt,
           id: cycle.id,
@@ -131,7 +150,7 @@ static flags = {
         console.log(chalk.bold.cyan(`\n📅 Cycles for ${team.name}:`))
         
         const headers = ['Name', 'Status', 'Start', 'End', 'Progress']
-        const rows = cycles.nodes.map((cycle: any) => {
+        const rows = cycles.nodes.map((cycle: CycleData) => {
           // Determine cycle status
           const now = new Date()
           const startsAt = new Date(cycle.startsAt)

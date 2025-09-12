@@ -1,8 +1,9 @@
+import { Project } from '@linear/sdk'
 import { Args, Command, Flags } from '@oclif/core'
 import chalk from 'chalk'
 
 import { getLinearClient, hasApiKey } from '../../services/linear.js'
-
+import { UpdateProjectFlags } from '../../types/commands.js'
 export default class ProjectUpdate extends Command {
   static args = {
     identifier: Args.string({
@@ -49,7 +50,7 @@ export default class ProjectUpdate extends Command {
     await this.runWithArgs(args.identifier, flags)
   }
 
-  async runWithArgs(identifier: string, flags: any): Promise<void> {
+  async runWithArgs(identifier: string, flags: UpdateProjectFlags): Promise<void> {
     // Check API key
     if (!hasApiKey()) {
       throw new Error('No API key configured. Run "lc init" first.')
@@ -59,7 +60,7 @@ export default class ProjectUpdate extends Command {
     
     try {
       // Find the project
-      let project: any = null
+      let project: null | Project = null
       
       // Try to get by ID if it looks like a UUID
       if (identifier.includes('-')) {
@@ -87,7 +88,16 @@ export default class ProjectUpdate extends Command {
       }
       
       // Build update input (don't include ID in the input)
-      const input: any = {}
+      interface ProjectUpdateInput {
+        description?: string
+        leadId?: null | string
+        name?: string
+        startDate?: string
+        state?: string
+        targetDate?: string
+      }
+      
+      const input: ProjectUpdateInput = {}
       
       if (flags.name) {
         input.name = flags.name
@@ -166,14 +176,8 @@ export default class ProjectUpdate extends Command {
         return
       }
       
-      // Get the project instance if we only have the data
-      let projectInstance = project
-      if (!project.update) {
-        projectInstance = await client.project(project.id)
-      }
-      
-      // Update the project
-      const updateResult = await projectInstance.update(input)
+      // Update the project using the client's updateProject method
+      await client.updateProject(project.id, input)
       
       // Get the updated project
       const updatedProject = await client.project(project.id)

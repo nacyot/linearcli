@@ -23,7 +23,7 @@ static flags = {
     await this.runWithFlags(flags)
   }
 
-  async runWithFlags(flags: any): Promise<void> {
+  async runWithFlags(flags: {'api-key'?: string}): Promise<void> {
     // Check if API key already exists
     if (hasApiKey() && !flags['api-key']) {
       const shouldOverwrite = await confirm({

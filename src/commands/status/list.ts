@@ -1,8 +1,16 @@
+import { WorkflowState } from '@linear/sdk'
 import { Command, Flags } from '@oclif/core'
 import chalk from 'chalk'
 
 import { getLinearClient, hasApiKey } from '../../services/linear.js'
+import { ListFlags } from '../../types/commands.js'
 import { formatState, formatTable } from '../../utils/table-formatter.js'
+
+interface TeamData {
+  id: string
+  key: string
+  name: string
+}
 
 export default class StatusList extends Command {
   static description = 'List workflow states for a team'
@@ -27,7 +35,7 @@ static flags = {
     await this.runWithFlags(flags)
   }
 
-  async runWithFlags(flags: any): Promise<void> {
+  async runWithFlags(flags: ListFlags): Promise<void> {
     // Check API key
     if (!hasApiKey()) {
       throw new Error('No API key configured. Run "lc init" first.')
@@ -37,7 +45,7 @@ static flags = {
     
     try {
       // Resolve team
-      let team: any = null
+      let team: null | TeamData = null
       
       // Try by key first
       const teams = await client.teams({
@@ -66,7 +74,7 @@ static flags = {
       
       // Output results
       if (flags.json) {
-        const output = states.nodes.map((state: any) => ({
+        const output = states.nodes.map((state: WorkflowState) => ({
           color: state.color,
           id: state.id,
           name: state.name,
@@ -78,11 +86,10 @@ static flags = {
         console.log(chalk.bold.cyan(`\n🔄 Workflow States for ${team.name}:`))
         
         const headers = ['State', 'Type']
-        const rows = states.nodes.map((state: any) => {
+        const rows = states.nodes.map((state: WorkflowState) => {
           const color = state.color || '#888'
           const colorBox = chalk.hex(color)('●')
           const name = `${colorBox} ${state.name}`
-          const type = this.formatType(state.type)
           return [name, formatState(state)]
         })
         

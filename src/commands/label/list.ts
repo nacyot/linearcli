@@ -32,7 +32,7 @@ static flags = {
     await this.runWithFlags(flags)
   }
 
-  async runWithFlags(flags: any): Promise<void> {
+  async runWithFlags(flags: {json?: boolean; limit?: number; team?: string}): Promise<void> {
     // Check API key
     if (!hasApiKey()) {
       throw new Error('No API key configured. Run "lc init" first.')
@@ -42,7 +42,7 @@ static flags = {
     
     try {
       // Build options
-      const options: any = {
+      const options: {filter?: {team?: {id: {eq: string}}}; first?: number;} = {
         first: flags.limit,
       }
       
@@ -63,7 +63,7 @@ static flags = {
       
       // Output results
       if (flags.json) {
-        const output = labels.nodes.map((label: any) => ({
+        const output = labels.nodes.map((label: {color?: string; description?: string; id: string; name: string}) => ({
           color: label.color,
           description: label.description,
           id: label.id,
@@ -79,7 +79,7 @@ static flags = {
         console.log(chalk.bold.cyan('\n🏷  Labels:'))
         
         const headers = ['Name', 'Description']
-        const rows = labels.nodes.map((label: any) => {
+        const rows = labels.nodes.map((label: {color?: string; description?: string; name: string}) => {
           const color = label.color || '#888'
           const colorBox = chalk.hex(color)('●')
           const name = `${colorBox} ${label.name}`

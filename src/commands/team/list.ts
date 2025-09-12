@@ -1,3 +1,5 @@
+import type { LinearDocument, Team } from '@linear/sdk'
+
 import { Command, Flags } from '@oclif/core'
 import chalk from 'chalk'
 
@@ -42,7 +44,7 @@ static flags = {
     await this.runWithFlags(flags)
   }
 
-  async runWithFlags(flags: any): Promise<void> {
+  async runWithFlags(flags: {'include-archived'?: boolean; json?: boolean; limit?: number; 'order-by'?: string; query?: string}): Promise<void> {
     // Check API key
     if (!hasApiKey()) {
       throw new Error('No API key configured. Run "lc init" first.')
@@ -52,10 +54,10 @@ static flags = {
     
     try {
       // Build options
-      const options: any = {
+      const options: LinearDocument.QueryTeamsArgs = {
         first: flags.limit || 50,
         includeArchived: flags['include-archived'] || false,
-        orderBy: flags['order-by'] || 'updatedAt',
+        orderBy: (flags['order-by'] || 'updatedAt') as LinearDocument.PaginationOrderBy,
       }
       
       // Add filter if query provided
@@ -70,11 +72,11 @@ static flags = {
       
       // Output results
       if (flags.json) {
-        const output = teams.nodes.map((team: any) => ({
+        const output = teams.nodes.map((team: Team) => ({
           description: team.description,
           id: team.id,
           key: team.key,
-          memberCount: team.memberCount,
+          memberCount: 0, // Linear SDK doesn't expose memberCount
           name: team.name,
         }))
         console.log(JSON.stringify(output, null, 2))
@@ -88,7 +90,7 @@ static flags = {
         
         // Prepare table data
         const headers = ['Key', 'Name', 'Description']
-        const rows = teams.nodes.map((team: any) => [
+        const rows = teams.nodes.map((team: Team) => [
           chalk.cyan(team.key || '-'),
           team.name || '-',
           chalk.gray(team.description ? team.description.slice(0, 50) : '')
