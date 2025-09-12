@@ -109,7 +109,7 @@ static flags = {
       
       // Prepare query variables
       const variables: any = {
-        first: Math.min(flags.limit || 50, 250),
+        first: Math.min(flags.limit > 0 ? flags.limit : 50, 250),
         includeArchived: flags['include-archived'] || false,
         orderBy: flags['order-by'] === 'createdAt' 
           ? LinearDocument.PaginationOrderBy.CreatedAt 
