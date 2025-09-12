@@ -128,6 +128,23 @@ export default class LabelCreate extends Command {
       }
     } catch (error) {
       if (error instanceof Error) {
+        // Check for admin permission error
+        const errorMessage = error.message.toLowerCase()
+        const hasErrors = (error as any).errors
+        const needsAdmin = hasErrors && (error as any).errors.some(
+          (e: any) => e.message && e.message.toLowerCase().includes('admin')
+        )
+        
+        if (needsAdmin || errorMessage.includes('admin')) {
+          console.log(chalk.yellow('\n⚠️  Label creation requires admin permissions'))
+          console.log(chalk.gray('\nAlternatives:'))
+          console.log(chalk.gray('  • Contact your workspace admin to create the label'))
+          console.log(chalk.gray('  • Use an existing label with "lc label list"'))
+          console.log(chalk.gray('  • Request admin permissions from your team lead'))
+          
+          throw new Error('Label creation requires admin permissions. Please contact your workspace admin or use an existing label.')
+        }
+        
         throw error
       }
 
