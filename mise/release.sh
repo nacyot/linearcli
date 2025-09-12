@@ -61,13 +61,9 @@ echo "Version updated to: $NEW_VERSION"
 echo "Updating oclif manifest..."
 npm run prepack
 
-# Update README with oclif
-echo "Updating README..."
-npm run version
-
 # Commit version bump
 echo "Committing version bump..."
-git add package.json package-lock.json README.md
+git add package.json package-lock.json
 # Add oclif.manifest.json if it exists (it may be gitignored)
 if [ -f "oclif.manifest.json" ]; then
     git add oclif.manifest.json 2>/dev/null || true
