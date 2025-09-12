@@ -1,8 +1,27 @@
 import { LinearClient } from '@linear/sdk'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+// Mock storage for testing
+let mockConfigStore: Record<string, unknown> = {}
+
+// Mock Conf to prevent file system side effects
+vi.mock('conf', () => ({
+  default: vi.fn().mockImplementation(() => ({
+    clear: vi.fn(() => {
+      mockConfigStore = {}
+    }),
+    delete: vi.fn((key: string) => {
+      delete mockConfigStore[key]
+    }),
+    get: vi.fn((key: string) => mockConfigStore[key]),
+    set: vi.fn((key: string, value: unknown) => {
+      mockConfigStore[key] = value
+    }),
+  })),
+}))
+
 // 테스트할 서비스
-import { clearApiKey, getApiKey, getLinearClient, setApiKey } from '../../src/services/linear.js'
+import { getApiKey, getLinearClient, setApiKey } from '../../src/services/linear.js'
 
 vi.mock('@linear/sdk', () => ({
   LinearClient: vi.fn().mockImplementation(() => ({
@@ -13,11 +32,11 @@ vi.mock('@linear/sdk', () => ({
 describe('Linear Service', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Mock storage 초기화
+    mockConfigStore = {}
     // 환경변수 초기화
     delete process.env.LINEAR_API_KEY
     delete process.env.LINEAR_CLI_KEY
-    // 저장된 설정 초기화
-    clearApiKey()
   })
 
   afterEach(() => {

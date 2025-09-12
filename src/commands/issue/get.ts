@@ -92,7 +92,7 @@ static flags = {
     assignee?: {name: string};
     attachments?: {nodes: Array<{title: string; url: string}>};
     children?: {nodes: Array<{identifier: string; title: string}>};
-    comments?: {nodes: Array<{id: string}>};
+    comments?: {nodes: {length: number}};
     dueDate?: string;
     labels?: {nodes: Array<{name: string}>};
     parent?: {identifier: string; title: string};
