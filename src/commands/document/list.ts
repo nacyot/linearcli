@@ -150,6 +150,11 @@ export default class DocumentList extends Command {
         console.log(JSON.stringify(docsWithData, null, 2))
       } else if (docsWithData.length === 0) {
         console.log(chalk.yellow('No documents found'))
+        console.log(chalk.gray('\nPossible reasons:'))
+        console.log(chalk.gray('  • Your API token may lack "read:documents" permission'))
+        console.log(chalk.gray('  • The Docs feature may be disabled for your organization'))
+        console.log(chalk.gray('  • All documents may be archived (try --include-archived)'))
+        console.log(chalk.gray('  • No documents match your filter criteria'))
       } else {
         console.log(chalk.cyan(`\nFound ${docsWithData.length} document${docsWithData.length === 1 ? '' : 's'}:`))
         
