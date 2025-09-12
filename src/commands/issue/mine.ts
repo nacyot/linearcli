@@ -2,6 +2,7 @@ import { Command, Flags } from '@oclif/core'
 import chalk from 'chalk'
 
 import { getLinearClient, hasApiKey } from '../../services/linear.js'
+import { formatState, formatTable } from '../../utils/table-formatter.js'
 
 export default class IssueMine extends Command {
   static description = 'List issues assigned to you'
@@ -85,20 +86,25 @@ static flags = {
         }
         
         console.log(chalk.bold.cyan('\n📋 Issues assigned to you:'))
-        console.log(chalk.gray('─'.repeat(80)))
+        
+        // Prepare table data
+        const headers = ['ID', 'State', 'Title']
+        const rows = []
         
         for (const issue of issues.nodes) {
-          const {state} = issue
-          const stateName = state ? this.formatState(state) : chalk.gray('Unknown')
-          const team = await issue.team
-          const teamKey = team?.key || ''
-          
-          console.log(
-            `${chalk.cyan(issue.identifier.padEnd(10))} ${stateName.padEnd(20)} ${issue.title}`
-          )
+          const [team, state] = await Promise.all([
+            issue.team,
+            issue.state
+          ])
+          rows.push([
+            chalk.cyan(issue.identifier),
+            formatState(state),
+            issue.title
+          ])
         }
         
-        console.log('')
+        // Display table
+        console.log(formatTable({ headers, rows }))
         
         if (issues.pageInfo.hasNextPage) {
           console.log(chalk.gray(`Showing first ${issues.nodes.length} issues. Use --limit to see more.`))
@@ -111,39 +117,6 @@ static flags = {
       }
 
       throw new Error('Failed to fetch your assigned issues')
-    }
-  }
-
-  private formatState(state: any): string {
-    if (!state) return chalk.gray('Unknown')
-    
-    const name = state.name || 'Unknown'
-    const {type} = state
-    
-    switch (type) {
-      case 'backlog': {
-        return chalk.gray(name)
-      }
-
-      case 'canceled': {
-        return chalk.red(name)
-      }
-
-      case 'completed': {
-        return chalk.green(name)
-      }
-
-      case 'started': {
-        return chalk.yellow(name)
-      }
-
-      case 'unstarted': {
-        return chalk.blue(name)
-      }
-
-      default: {
-        return name
-      }
     }
   }
 }

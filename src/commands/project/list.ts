@@ -2,6 +2,7 @@ import { Command, Flags } from '@oclif/core'
 import chalk from 'chalk'
 
 import { getLinearClient, hasApiKey } from '../../services/linear.js'
+import { formatDate, formatPercent, formatTable } from '../../utils/table-formatter.js'
 
 export default class ProjectList extends Command {
   static description = 'List projects in your Linear workspace'
@@ -138,38 +139,18 @@ static flags = {
         }
         
         console.log(chalk.bold.cyan('\n📁 Projects:'))
-        console.log(chalk.gray('─'.repeat(80)))
         
-        // Table header
-        console.log(
-          chalk.bold('Name'.padEnd(30)) +
-          chalk.bold('State'.padEnd(15)) +
-          chalk.bold('Progress'.padEnd(10)) +
-          chalk.bold('Target Date')
-        )
-        console.log(chalk.gray('-'.repeat(80)))
+        // Prepare table data
+        const headers = ['Name', 'State', 'Progress', 'Target Date']
+        const rows = filteredProjects.map((project: any) => [
+          project.name || '-',
+          this.formatState(project.state),
+          formatPercent(project.progress),
+          formatDate(project.targetDate)
+        ])
         
-        for (const project of filteredProjects) {
-          const name = project.name || '-'
-          const state = this.formatState(project.state)
-          const progress = project.progress ? `${Math.round(project.progress * 100)}%` : '0%'
-          const targetDate = project.targetDate 
-            ? new Date(project.targetDate).toLocaleDateString('en-US', { 
-                day: 'numeric', 
-                month: 'short',
-                year: 'numeric',
-              })
-            : '-'
-          
-          console.log(
-            name.padEnd(30) +
-            state.padEnd(23) +
-            progress.padEnd(10) +
-            targetDate
-          )
-        }
-        
-        console.log('')
+        // Display table
+        console.log(formatTable({ headers, rows }))
       }
       
     } catch (error) {

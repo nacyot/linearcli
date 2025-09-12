@@ -2,6 +2,7 @@ import { Command, Flags } from '@oclif/core'
 import chalk from 'chalk'
 
 import { getLinearClient, hasApiKey } from '../../services/linear.js'
+import { formatDate, formatPercent, formatTable } from '../../utils/table-formatter.js'
 
 export default class CycleList extends Command {
   static description = 'List cycles for a team'
@@ -128,20 +129,9 @@ static flags = {
         }
         
         console.log(chalk.bold.cyan(`\n📅 Cycles for ${team.name}:`))
-        console.log(chalk.gray('─'.repeat(80)))
         
-        for (const cycle of cycles.nodes) {
-          const start = new Date(cycle.startsAt).toLocaleDateString('en-US', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-          })
-          const end = new Date(cycle.endsAt).toLocaleDateString('en-US', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-          })
-          
+        const headers = ['Name', 'Status', 'Start', 'End', 'Progress']
+        const rows = cycles.nodes.map((cycle: any) => {
           // Determine cycle status
           const now = new Date()
           const startsAt = new Date(cycle.startsAt)
@@ -149,31 +139,24 @@ static flags = {
           let status = ''
           
           if (now < startsAt) {
-            status = chalk.blue('[UPCOMING]')
+            status = chalk.blue('Upcoming')
           } else if (now > endsAt) {
-            status = chalk.gray('[COMPLETED]')
+            status = chalk.gray('Completed')
           } else {
-            status = chalk.green('[ACTIVE]')
+            status = chalk.green('Active')
           }
           
-          console.log(`\n${chalk.bold(cycle.name || `Cycle ${cycle.number}`)} ${status}`)
-          console.log(chalk.gray(`  ${start} → ${end}`))
+          const name = chalk.bold(cycle.name || `Cycle ${cycle.number}`)
+          const start = formatDate(cycle.startsAt)
+          const end = formatDate(cycle.endsAt)
+          const progress = cycle.progress !== undefined && cycle.progress !== null 
+            ? formatPercent(cycle.progress) 
+            : chalk.gray('-')
           
-          if (cycle.progress !== undefined && cycle.progress !== null) {
-            const progressBar = this.createProgressBar(cycle.progress, 20)
-            console.log(`  Progress: ${progressBar} ${Math.round(cycle.progress * 100)}%`)
-          }
-          
-          if (cycle.scopeHistory && cycle.completedScopeHistory) {
-            const lastScope = cycle.scopeHistory.at(-1)
-            const lastCompleted = cycle.completedScopeHistory.at(-1)
-            if (lastScope && lastCompleted) {
-              console.log(chalk.gray(`  Scope: ${lastCompleted}/${lastScope} issues completed`))
-            }
-          }
-        }
+          return [name, status, start, end, progress]
+        })
         
-        console.log('')
+        console.log(formatTable({ headers, rows }))
       }
       
     } catch (error) {
@@ -185,9 +168,4 @@ static flags = {
     }
   }
 
-  private createProgressBar(progress: number, width: number): string {
-    const filled = Math.round(progress * width)
-    const empty = width - filled
-    return chalk.green('█'.repeat(filled)) + chalk.gray('░'.repeat(empty))
-  }
 }

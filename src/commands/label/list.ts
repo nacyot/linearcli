@@ -2,6 +2,7 @@ import { Command, Flags } from '@oclif/core'
 import chalk from 'chalk'
 
 import { getLinearClient, hasApiKey } from '../../services/linear.js'
+import { formatTable } from '../../utils/table-formatter.js'
 
 export default class LabelList extends Command {
   static description = 'List issue labels in your Linear workspace'
@@ -76,18 +77,17 @@ static flags = {
         }
         
         console.log(chalk.bold.cyan('\n🏷  Labels:'))
-        console.log(chalk.gray('─'.repeat(80)))
         
-        for (const label of labels.nodes) {
+        const headers = ['Name', 'Description']
+        const rows = labels.nodes.map((label: any) => {
           const color = label.color || '#888'
           const colorBox = chalk.hex(color)('●')
-          console.log(`${colorBox} ${label.name}`)
-          if (label.description) {
-            console.log(`  ${chalk.gray(label.description)}`)
-          }
-        }
+          const name = `${colorBox} ${label.name}`
+          const description = label.description ? chalk.gray(label.description) : '-'
+          return [name, description]
+        })
         
-        console.log('')
+        console.log(formatTable({ headers, rows }))
       }
       
     } catch (error) {

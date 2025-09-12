@@ -2,6 +2,7 @@ import { Command, Flags } from '@oclif/core'
 import chalk from 'chalk'
 
 import { getLinearClient, hasApiKey } from '../../services/linear.js'
+import { formatTable } from '../../utils/table-formatter.js'
 
 export default class UserList extends Command {
   static description = 'List users in your Linear workspace'
@@ -91,32 +92,16 @@ static flags = {
         }
         
         console.log(chalk.bold.cyan('\n👤 Users in your workspace:'))
-        console.log(chalk.gray('─'.repeat(80)))
         
-        // Table header
-        console.log(
-          chalk.bold('Name'.padEnd(25)) +
-          chalk.bold('Email'.padEnd(30)) +
-          chalk.bold('Status'.padEnd(10)) +
-          chalk.bold('Role')
-        )
-        console.log(chalk.gray('-'.repeat(80)))
+        const headers = ['Name', 'Email', 'Status', 'Role']
+        const rows = users.nodes.map((user: any) => [
+          user.name || '-',
+          chalk.gray(user.email || '-'),
+          user.active ? chalk.green('Active') : chalk.red('Inactive'),
+          user.admin ? chalk.yellow('Admin') : 'Member'
+        ])
         
-        for (const user of users.nodes) {
-          const name = user.name || '-'
-          const email = user.email || '-'
-          const status = user.active ? chalk.green('Active') : chalk.red('Inactive')
-          const role = user.admin ? chalk.yellow('Admin') : 'Member'
-          
-          console.log(
-            name.padEnd(25) +
-            chalk.gray(email.padEnd(30)) +
-            status.padEnd(20) +
-            role
-          )
-        }
-        
-        console.log('')
+        console.log(formatTable({ headers, rows }))
       }
       
     } catch (error) {

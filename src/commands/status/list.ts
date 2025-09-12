@@ -2,6 +2,7 @@ import { Command, Flags } from '@oclif/core'
 import chalk from 'chalk'
 
 import { getLinearClient, hasApiKey } from '../../services/linear.js'
+import { formatTable, formatState } from '../../utils/table-formatter.js'
 
 export default class StatusList extends Command {
   static description = 'List workflow states for a team'
@@ -75,32 +76,17 @@ static flags = {
         console.log(JSON.stringify(output, null, 2))
       } else {
         console.log(chalk.bold.cyan(`\n🔄 Workflow States for ${team.name}:`))
-        console.log(chalk.gray('─'.repeat(80)))
         
-        // Group states by type
-        const statesByType: any = {}
-        for (const state of states.nodes) {
-          if (!statesByType[state.type]) {
-            statesByType[state.type] = []
-          }
-
-          statesByType[state.type].push(state)
-        }
+        const headers = ['State', 'Type']
+        const rows = states.nodes.map((state: any) => {
+          const color = state.color || '#888'
+          const colorBox = chalk.hex(color)('●')
+          const name = `${colorBox} ${state.name}`
+          const type = this.formatType(state.type)
+          return [name, formatState(state)]
+        })
         
-        // Display states by type
-        const typeOrder = ['backlog', 'unstarted', 'started', 'completed', 'canceled']
-        for (const type of typeOrder) {
-          if (statesByType[type]) {
-            console.log(`\n${chalk.bold(this.formatType(type))}:`)
-            for (const state of statesByType[type]) {
-              const color = state.color || '#888'
-              const colorBox = chalk.hex(color)('●')
-              console.log(`  ${colorBox} ${state.name}`)
-            }
-          }
-        }
-        
-        console.log('')
+        console.log(formatTable({ headers, rows }))
       }
       
     } catch (error) {

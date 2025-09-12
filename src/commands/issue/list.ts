@@ -3,6 +3,7 @@ import { Command, Flags } from '@oclif/core'
 import chalk from 'chalk'
 
 import { getLinearClient, hasApiKey } from '../../services/linear.js'
+import { formatState, formatTable, truncateText } from '../../utils/table-formatter.js'
 
 export default class IssueList extends Command {
   static description = 'List Linear issues'
@@ -123,11 +124,20 @@ static flags = {
       // Fetch issues
       const issues = await client.issues(variables)
       
+      // Fetch state for each issue
+      const issuesWithState = await Promise.all(
+        issues.nodes.map(async (issue: any) => ({
+          ...issue,
+          state: await issue.state,
+          assignee: await issue.assignee
+        }))
+      )
+      
       // Output results
       if (flags.json) {
-        console.log(JSON.stringify(issues.nodes, null, 2))
+        console.log(JSON.stringify(issuesWithState, null, 2))
       } else {
-        this.displayIssues(issues.nodes)
+        this.displayIssues(issuesWithState)
       }
       
     } catch (error) {
@@ -145,61 +155,19 @@ static flags = {
       return
     }
     
-    console.log(chalk.bold(`\nFound ${issues.length} issue${issues.length === 1 ? '' : 's'}:\n`))
+    console.log(chalk.bold(`\nFound ${issues.length} issue${issues.length === 1 ? '' : 's'}:`))
     
-    // Table header
-    console.log(
-      chalk.gray('ID'.padEnd(10)) +
-      chalk.gray('Title'.padEnd(50)) +
-      chalk.gray('State'.padEnd(15)) +
-      chalk.gray('Assignee'.padEnd(20))
-    )
-    console.log(chalk.gray('-'.repeat(95)))
+    // Prepare table data
+    const headers = ['ID', 'Title', 'State', 'Assignee']
+    const rows = issues.map(issue => [
+      chalk.cyan(issue.identifier),
+      truncateText(issue.title, 50),
+      formatState(issue.state),
+      issue.assignee?.name || chalk.gray('Unassigned')
+    ])
     
-    // Table rows
-    for (const issue of issues) {
-      const id = chalk.cyan(issue.identifier.padEnd(10))
-      const title = this.truncate(issue.title, 48).padEnd(50)
-      const state = this.formatState(issue.state).padEnd(15)
-      const assignee = (issue.assignee?.name || chalk.gray('Unassigned')).padEnd(20)
-      
-      console.log(id + title + state + assignee)
-    }
-    
-    console.log('')
-  }
-
-  private formatState(state: any): string {
-    if (!state) return chalk.gray('Unknown')
-    
-    const name = state.name || 'Unknown'
-    const {type} = state
-    
-    switch (type) {
-      case 'backlog': {
-        return chalk.gray(name)
-      }
-
-      case 'canceled': {
-        return chalk.red(name)
-      }
-
-      case 'completed': {
-        return chalk.green(name)
-      }
-
-      case 'started': {
-        return chalk.yellow(name)
-      }
-
-      case 'unstarted': {
-        return chalk.blue(name)
-      }
-
-      default: {
-        return name
-      }
-    }
+    // Display table
+    console.log(formatTable({ headers, rows }))
   }
 
   private async resolveLabelId(client: any, nameOrId: string): Promise<null | string> {
@@ -268,10 +236,5 @@ static flags = {
     }
     
     return users.nodes[0]?.id || null
-  }
-
-  private truncate(text: string, maxLength: number): string {
-    if (text.length <= maxLength) return text
-    return text.slice(0, Math.max(0, maxLength - 3)) + '...'
   }
 }

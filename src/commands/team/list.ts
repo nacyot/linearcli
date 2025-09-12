@@ -2,6 +2,7 @@ import { Command, Flags } from '@oclif/core'
 import chalk from 'chalk'
 
 import { getLinearClient, hasApiKey } from '../../services/linear.js'
+import { formatTable } from '../../utils/table-formatter.js'
 
 export default class TeamList extends Command {
   static description = 'List all teams in your Linear workspace'
@@ -77,29 +78,17 @@ static flags = {
         }
         
         console.log(chalk.bold.cyan('\n👥 Teams in your workspace:'))
-        console.log(chalk.gray('─'.repeat(80)))
         
-        // Table header
-        console.log(
-          chalk.bold('Key'.padEnd(10)) +
-          chalk.bold('Name'.padEnd(35)) +
-          chalk.bold('Description')
-        )
-        console.log(chalk.gray('-'.repeat(80)))
+        // Prepare table data
+        const headers = ['Key', 'Name', 'Description']
+        const rows = teams.nodes.map((team: any) => [
+          chalk.cyan(team.key || '-'),
+          team.name || '-',
+          chalk.gray(team.description ? team.description.slice(0, 50) : '')
+        ])
         
-        for (const team of teams.nodes) {
-          const key = team.key || '-'
-          const name = team.name || '-'
-          const description = team.description || ''
-          
-          console.log(
-            chalk.cyan(key.padEnd(10)) +
-            name.padEnd(35) +
-            chalk.gray(description.slice(0, 45))
-          )
-        }
-        
-        console.log('')
+        // Display table
+        console.log(formatTable({ headers, rows }))
       }
       
     } catch (error) {
