@@ -1,4 +1,5 @@
 import { Command, Flags } from '@oclif/core'
+import { IssueRelationType } from '@linear/sdk'
 import chalk from 'chalk'
 
 import { getLinearClient, hasApiKey } from '../../services/linear.js'
@@ -190,10 +191,10 @@ static flags = {
         }
       }
 
-      // Resolve and add linked issues if provided
+      // Collect links for later processing (Linear API doesn't support links at creation)
+      const relatedIssueIds: string[] = []
       if (flags.links) {
         const issueKeys = flags.links.split(',').map((k: string) => k.trim())
-        const relatedIssueIds: string[] = []
         
         for (const issueKey of issueKeys) {
           try {
@@ -202,10 +203,6 @@ static flags = {
           } catch {
             console.log(chalk.yellow(`Warning: Issue "${issueKey}" not found, skipping`))
           }
-        }
-        
-        if (relatedIssueIds.length > 0) {
-          input.relatedIssueIds = relatedIssueIds
         }
       }
 
@@ -218,6 +215,24 @@ static flags = {
       }
 
       const issue = await payload.issue
+      
+      // Create issue links after issue creation
+      if (relatedIssueIds.length > 0) {
+        console.log(chalk.gray('Creating issue links...'))
+        const linkPromises = relatedIssueIds.map(relatedId => 
+          client.createIssueRelation({
+            issueId: issue.id,
+            relatedIssueId: relatedId,
+            type: IssueRelationType.Related,
+          }).catch((error: any) => {
+            console.log(chalk.yellow(`Warning: Failed to create link: ${error.message}`))
+            return null
+          })
+        )
+        
+        await Promise.all(linkPromises)
+        console.log(chalk.green(`✓ Created ${relatedIssueIds.length} issue link${relatedIssueIds.length === 1 ? '' : 's'}`))
+      }
 
       // Display success message
       console.log(chalk.green(`\n✓ Issue ${chalk.bold(issue.identifier)} created successfully!`))
