@@ -1,0 +1,206 @@
+import { Args, Command, Flags } from '@oclif/core'
+import chalk from 'chalk'
+
+import { getLinearClient, hasApiKey } from '../../services/linear.js'
+
+export default class IssueGet extends Command {
+  static args = {
+    id: Args.string({
+      description: 'Issue ID (e.g., ENG-123)',
+      required: true,
+    }),
+  }
+static description = 'Get details of a Linear issue'
+static examples = [
+    '<%= config.bin %> <%= command.id %> ENG-123',
+  ]
+static flags = {
+    json: Flags.boolean({
+      default: false,
+      description: 'Output as JSON',
+    }),
+  }
+
+  async run(): Promise<void> {
+    const { args, flags } = await this.parse(IssueGet)
+    await this.runWithArgs(args.id, flags)
+  }
+
+  async runWithArgs(issueId: string, flags: any = {}): Promise<void> {
+    // Check API key
+    if (!hasApiKey()) {
+      throw new Error('No API key configured. Run "lc init" first.')
+    }
+
+    const client = getLinearClient()
+    
+    try {
+      // Fetch issue details
+      const issue = await client.issue(issueId)
+      
+      if (!issue) {
+        throw new Error(`Issue ${issueId} not found`)
+      }
+      
+      // Fetch related data
+      const [state, assignee, team, labels, project, parent, children, comments] = await Promise.all([
+        issue.state,
+        issue.assignee,
+        issue.team,
+        issue.labels(),
+        issue.project,
+        issue.parent,
+        issue.children(),
+        issue.comments(),
+      ])
+      
+      // Output results
+      if (flags.json) {
+        const output = {
+          assignee: assignee ? { id: assignee.id, name: assignee.name } : null,
+          children: children.nodes.map(c => ({ id: c.id, identifier: c.identifier })),
+          comments: comments.nodes.length,
+          createdAt: issue.createdAt,
+          description: issue.description,
+          id: issue.id,
+          identifier: issue.identifier,
+          labels: labels.nodes.map(l => ({ id: l.id, name: l.name })),
+          parent: parent ? { id: parent.id, identifier: parent.identifier } : null,
+          project: project ? { id: project.id, name: project.name } : null,
+          state: state ? { id: state.id, name: state.name } : null,
+          team: team ? { id: team.id, key: team.key, name: team.name } : null,
+          title: issue.title,
+          updatedAt: issue.updatedAt,
+          url: issue.url,
+        }
+        console.log(JSON.stringify(output, null, 2))
+      } else {
+        this.displayIssue(issue, { assignee, children, comments, labels, parent, project, state, team })
+      }
+      
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error
+      }
+
+      throw new Error(`Failed to fetch issue ${issueId}`)
+    }
+  }
+
+  private displayIssue(issue: any, related: any): void {
+    console.log('')
+    
+    // Header
+    console.log(chalk.bold.cyan(issue.identifier) + chalk.gray(' • ') + chalk.bold(issue.title))
+    console.log(chalk.gray('─'.repeat(80)))
+    
+    // Basic info
+    const info = []
+    
+    if (related.state) {
+      info.push(`State: ${this.formatState(related.state)}`)
+    }
+    
+    if (related.assignee) {
+      info.push(`Assignee: ${related.assignee.name}`)
+    } else {
+      info.push(`Assignee: ${chalk.gray('Unassigned')}`)
+    }
+    
+    if (related.team) {
+      info.push(`Team: ${related.team.name} (${related.team.key})`)
+    }
+    
+    if (related.project) {
+      info.push(`Project: ${related.project.name}`)
+    }
+    
+    console.log(info.join(chalk.gray(' • ')))
+    
+    // Labels
+    if (related.labels && related.labels.nodes.length > 0) {
+      const labelNames = related.labels.nodes.map((l: any) => chalk.magenta(l.name))
+      console.log(`Labels: ${labelNames.join(', ')}`)
+    }
+    
+    // Dates
+    console.log(chalk.gray(`Created: ${this.formatDate(issue.createdAt)} • Updated: ${this.formatDate(issue.updatedAt)}`))
+    
+    // Description
+    if (issue.description) {
+      console.log(chalk.gray('\n─ Description ─'))
+      console.log(issue.description)
+    }
+    
+    // Related issues
+    if (related.parent) {
+      console.log(chalk.gray('\n─ Parent Issue ─'))
+      console.log(chalk.cyan(related.parent.identifier))
+    }
+    
+    if (related.children && related.children.nodes.length > 0) {
+      console.log(chalk.gray('\n─ Sub-issues ─'))
+      for (const child of related.children.nodes) {
+        console.log(`  • ${chalk.cyan(child.identifier)}`)
+      }
+    }
+    
+    // Comments
+    if (related.comments && related.comments.nodes.length > 0) {
+      console.log(chalk.gray(`\n─ Comments (${related.comments.nodes.length}) ─`))
+      console.log(chalk.gray(`Run "lc comment list --issue ${issue.identifier}" to view comments`))
+    }
+    
+    // URL
+    if (issue.url) {
+      console.log(chalk.gray('\n─ View in Linear ─'))
+      console.log(chalk.blue(issue.url))
+    }
+    
+    console.log('')
+  }
+
+  private formatDate(date: Date | string): string {
+    const d = new Date(date)
+    return d.toLocaleDateString('en-US', { 
+      day: 'numeric', 
+      hour: '2-digit', 
+      minute: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    })
+  }
+
+  private formatState(state: any): string {
+    if (!state) return chalk.gray('Unknown')
+    
+    const name = state.name || 'Unknown'
+    const {type} = state
+    
+    switch (type) {
+      case 'backlog': {
+        return chalk.gray(name)
+      }
+
+      case 'canceled': {
+        return chalk.red(name)
+      }
+
+      case 'completed': {
+        return chalk.green(name)
+      }
+
+      case 'started': {
+        return chalk.yellow(name)
+      }
+
+      case 'unstarted': {
+        return chalk.blue(name)
+      }
+
+      default: {
+        return name
+      }
+    }
+  }
+}
