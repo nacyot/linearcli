@@ -178,6 +178,12 @@ describe('issue commands - delegate and links support', () => {
       }
       mockClient.createIssue.mockResolvedValue(mockIssue)
       
+      // Add mock for createIssueRelation
+      mockClient.createIssueRelation = vi.fn().mockResolvedValue({
+        issueRelation: { id: 'relation-1', type: 'related' },
+        success: true,
+      })
+      
       const IssueCreate = (await import('../../../src/commands/issue/create.js')).default
       const cmd = new IssueCreate([], {} as any)
       await cmd.runWithFlags({
@@ -187,14 +193,23 @@ describe('issue commands - delegate and links support', () => {
       })
       
       expect(mockClient.issue).toHaveBeenCalledWith('ENG-99')
+      
+      // Should NOT include relatedIssueIds in createIssue
       expect(mockClient.createIssue).toHaveBeenCalledWith(
-        expect.objectContaining({
-          relatedIssueIds: ['related-1'],
+        expect.not.objectContaining({
+          relatedIssueIds: expect.anything(),
         }),
       )
+      
+      // Should call createIssueRelation
+      expect(mockClient.createIssueRelation).toHaveBeenCalledWith({
+        issueId: 'issue-1',
+        relatedIssueId: 'related-1',
+        type: 'related',
+      })
     })
 
-    it('should add multiple links', async () => {
+    it('should add multiple links after creation', async () => {
       const mockTeams = {
         nodes: [{ id: 'team-1', key: 'ENG', name: 'engineering' }],
       }
@@ -215,6 +230,12 @@ describe('issue commands - delegate and links support', () => {
       }
       mockClient.createIssue.mockResolvedValue(mockIssue)
       
+      // Add mock for createIssueRelation
+      mockClient.createIssueRelation = vi.fn().mockResolvedValue({
+        issueRelation: { id: 'relation-1', type: 'related' },
+        success: true,
+      })
+      
       const IssueCreate = (await import('../../../src/commands/issue/create.js')).default
       const cmd = new IssueCreate([], {} as any)
       await cmd.runWithFlags({
@@ -223,11 +244,28 @@ describe('issue commands - delegate and links support', () => {
         title: 'Test issue',
       })
       
+      // Should NOT include relatedIssueIds in createIssue
       expect(mockClient.createIssue).toHaveBeenCalledWith(
-        expect.objectContaining({
-          relatedIssueIds: ['related-1', 'related-2'],
+        expect.not.objectContaining({
+          relatedIssueIds: expect.anything(),
         }),
       )
+      
+      // Should call createIssueRelation for each link
+      expect(mockClient.createIssueRelation).toHaveBeenCalledTimes(2)
+      expect(mockClient.createIssueRelation).toHaveBeenCalledWith({
+        issueId: 'issue-1',
+        relatedIssueId: 'related-1',
+        type: 'related',
+      })
+      expect(mockClient.createIssueRelation).toHaveBeenCalledWith({
+        issueId: 'issue-1',
+        relatedIssueId: 'related-2',
+        type: 'related',
+      })
+      
+      // Should log progress
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Creating issue links...'))
     })
 
     it('should warn about invalid issue links', async () => {
@@ -249,6 +287,9 @@ describe('issue commands - delegate and links support', () => {
       }
       mockClient.createIssue.mockResolvedValue(mockIssue)
       
+      // Add mock for createIssueRelation (should not be called for invalid links)
+      mockClient.createIssueRelation = vi.fn()
+      
       const IssueCreate = (await import('../../../src/commands/issue/create.js')).default
       const cmd = new IssueCreate([], {} as any)
       await cmd.runWithFlags({
@@ -263,6 +304,9 @@ describe('issue commands - delegate and links support', () => {
           relatedIssueIds: expect.anything(),
         }),
       )
+      
+      // Should not call createIssueRelation for invalid links
+      expect(mockClient.createIssueRelation).not.toHaveBeenCalled()
     })
   })
 

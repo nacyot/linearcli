@@ -21,6 +21,7 @@ describe('issue commands - edge cases', () => {
     // Create mock client
     mockClient = {
       createIssue: vi.fn(),
+      createIssueRelation: vi.fn(),
       issue: vi.fn(),
       issues: vi.fn(),
       team: vi.fn(),
@@ -48,6 +49,7 @@ describe('issue commands - edge cases', () => {
       mockClient.teams.mockResolvedValue(mockTeams)
       
       const mockIssue = {
+        success: true,
         issue: {
           assignee: null,
           createdAt: new Date().toISOString(),
@@ -87,6 +89,7 @@ describe('issue commands - edge cases', () => {
       mockClient.teams.mockResolvedValue(mockTeams)
       
       const mockIssue = {
+        success: true,
         issue: {
           assignee: null,
           createdAt: new Date().toISOString(),
@@ -139,7 +142,7 @@ describe('issue commands - edge cases', () => {
       
       const IssueList = (await import('../../../src/commands/issue/list.js')).default
       const cmd = new IssueList([], {} as any)
-      await cmd.runWithFlags({})
+      await cmd.runWithoutParse({})
       
       expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('한글과 English가 混在하는 🚀 제목!'))
     })
@@ -190,7 +193,7 @@ describe('issue commands - edge cases', () => {
       const IssueGet = (await import('../../../src/commands/issue/get.js')).default
       const cmd = new IssueGet(['INVALID-999'], {} as any)
       
-      await expect(cmd.run()).rejects.toThrow('Entity not found')
+      await expect(cmd.runWithArgs('INVALID-999', {})).rejects.toThrow('Entity not found')
     })
 
     it('should handle network timeout', async () => {
@@ -199,34 +202,37 @@ describe('issue commands - edge cases', () => {
       const IssueList = (await import('../../../src/commands/issue/list.js')).default
       const cmd = new IssueList([], {} as any)
       
-      await expect(cmd.runWithFlags({})).rejects.toThrow('Network timeout')
+      await expect(cmd.runWithoutParse({})).rejects.toThrow('Network timeout')
     })
   })
 
   describe('Special value handling', () => {
     it('should handle "none" value for assignee to remove assignment', async () => {
+      const mockUpdate = {
+        issue: {
+          assignee: null,
+          id: 'issue-1',
+          identifier: 'ENG-103',
+          title: 'Test',
+          url: 'https://linear.app/team/issue/ENG-103',
+        },
+        success: true,
+      }
+      
       const mockIssue = {
         assignee: { name: 'John Doe' },
         id: 'issue-1',
         identifier: 'ENG-103',
+        team: Promise.resolve({ id: 'team-1', key: 'ENG', name: 'engineering' }),
+        update: vi.fn().mockResolvedValue(mockUpdate),
       }
       mockClient.issue.mockResolvedValue(mockIssue)
       
-      const mockUpdate = {
-        issue: {
-          ...mockIssue,
-          assignee: null,
-        },
-        success: true,
-      }
-      mockClient.updateIssue.mockResolvedValue(mockUpdate)
-      
       const IssueUpdate = (await import('../../../src/commands/issue/update.js')).default
       const cmd = new IssueUpdate(['ENG-103'], {} as any)
-      await cmd.runWithFlags({ assignee: 'none' })
+      await cmd.runWithArgs('ENG-103', { assignee: 'none' })
       
-      expect(mockClient.updateIssue).toHaveBeenCalledWith(
-        'issue-1',
+      expect(mockIssue.update).toHaveBeenCalledWith(
         expect.objectContaining({
           assigneeId: null,
         }),
@@ -234,28 +240,31 @@ describe('issue commands - edge cases', () => {
     })
 
     it('should handle "none" value for due date to clear it', async () => {
+      const mockUpdate = {
+        issue: {
+          dueDate: null,
+          id: 'issue-1',
+          identifier: 'ENG-104',
+          title: 'Test',
+          url: 'https://linear.app/team/issue/ENG-104',
+        },
+        success: true,
+      }
+      
       const mockIssue = {
         dueDate: '2025-12-31',
         id: 'issue-1',
         identifier: 'ENG-104',
+        team: Promise.resolve({ id: 'team-1', key: 'ENG', name: 'engineering' }),
+        update: vi.fn().mockResolvedValue(mockUpdate),
       }
       mockClient.issue.mockResolvedValue(mockIssue)
       
-      const mockUpdate = {
-        issue: {
-          ...mockIssue,
-          dueDate: null,
-        },
-        success: true,
-      }
-      mockClient.updateIssue.mockResolvedValue(mockUpdate)
-      
       const IssueUpdate = (await import('../../../src/commands/issue/update.js')).default
       const cmd = new IssueUpdate(['ENG-104'], {} as any)
-      await cmd.runWithFlags({ 'due-date': 'none' })
+      await cmd.runWithArgs('ENG-104', { 'due-date': 'none' })
       
-      expect(mockClient.updateIssue).toHaveBeenCalledWith(
-        'issue-1',
+      expect(mockIssue.update).toHaveBeenCalledWith(
         expect.objectContaining({
           dueDate: null,
         }),
@@ -263,28 +272,31 @@ describe('issue commands - edge cases', () => {
     })
 
     it('should handle empty labels array', async () => {
+      const mockUpdate = {
+        issue: {
+          id: 'issue-1',
+          identifier: 'ENG-105',
+          labelIds: [],
+          title: 'Test',
+          url: 'https://linear.app/team/issue/ENG-105',
+        },
+        success: true,
+      }
+      
       const mockIssue = {
         id: 'issue-1',
         identifier: 'ENG-105',
         labelIds: ['label-1', 'label-2'],
+        team: Promise.resolve({ id: 'team-1', key: 'ENG', name: 'engineering' }),
+        update: vi.fn().mockResolvedValue(mockUpdate),
       }
       mockClient.issue.mockResolvedValue(mockIssue)
       
-      const mockUpdate = {
-        issue: {
-          ...mockIssue,
-          labelIds: [],
-        },
-        success: true,
-      }
-      mockClient.updateIssue.mockResolvedValue(mockUpdate)
-      
       const IssueUpdate = (await import('../../../src/commands/issue/update.js')).default
       const cmd = new IssueUpdate(['ENG-105'], {} as any)
-      await cmd.runWithFlags({ labels: 'none' })
+      await cmd.runWithArgs('ENG-105', { labels: 'none' })
       
-      expect(mockClient.updateIssue).toHaveBeenCalledWith(
-        'issue-1',
+      expect(mockIssue.update).toHaveBeenCalledWith(
         expect.objectContaining({
           labelIds: [],
         }),
@@ -298,7 +310,7 @@ describe('issue commands - edge cases', () => {
       
       const IssueList = (await import('../../../src/commands/issue/list.js')).default
       const cmd = new IssueList([], {} as any)
-      await cmd.runWithFlags({ limit: 500 })
+      await cmd.runWithoutParse({ limit: 500 })
       
       expect(mockClient.issues).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -312,7 +324,7 @@ describe('issue commands - edge cases', () => {
       
       const IssueList = (await import('../../../src/commands/issue/list.js')).default
       const cmd = new IssueList([], {} as any)
-      await cmd.runWithFlags({ limit: 0 })
+      await cmd.runWithoutParse({ limit: 0 })
       
       expect(mockClient.issues).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -326,7 +338,7 @@ describe('issue commands - edge cases', () => {
       
       const IssueList = (await import('../../../src/commands/issue/list.js')).default
       const cmd = new IssueList([], {} as any)
-      await cmd.runWithFlags({ limit: -10 })
+      await cmd.runWithoutParse({ limit: -10 })
       
       expect(mockClient.issues).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -344,10 +356,13 @@ describe('issue commands - edge cases', () => {
       mockClient.teams.mockResolvedValue(mockTeams)
       
       const mockIssue = {
+        success: true,
         issue: {
           dueDate: '2025-12-31T00:00:00.000Z',
           id: 'issue-1',
           identifier: 'ENG-106',
+          title: 'Test',
+          url: 'https://linear.app/team/issue/ENG-106',
         },
       }
       mockClient.createIssue.mockResolvedValue(mockIssue)

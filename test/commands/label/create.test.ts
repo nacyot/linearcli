@@ -246,4 +246,57 @@ describe('label create command', () => {
       team: 'ENG',
     })).rejects.toThrow('No API key configured. Run "lc init" first.')
   })
+
+  it('should handle admin permission error gracefully', async () => {
+    const mockTeams = {
+      nodes: [{ id: 'team-1', key: 'ENG', name: 'Engineering' }],
+    }
+    mockClient.teams.mockResolvedValue(mockTeams)
+    
+    // Mock an admin permission error
+    const adminError = new Error('GraphQL error') as any
+    adminError.errors = [
+      { message: 'You need to be an admin to create issue labels' }
+    ]
+    mockClient.createIssueLabel.mockRejectedValue(adminError)
+    
+    const LabelCreate = (await import('../../../src/commands/label/create.js')).default
+    const cmd = new LabelCreate([], {} as any)
+    
+    await expect(cmd.runWithFlags({
+      color: '#FF0000',
+      name: 'test',
+      team: 'ENG',
+    })).rejects.toThrow('Label creation requires admin permissions')
+  })
+
+  it('should suggest alternatives when admin permission is lacking', async () => {
+    const mockTeams = {
+      nodes: [{ id: 'team-1', key: 'ENG', name: 'Engineering' }],
+    }
+    mockClient.teams.mockResolvedValue(mockTeams)
+    
+    // Mock an admin permission error
+    const adminError = new Error('GraphQL error') as any
+    adminError.errors = [
+      { message: 'You need to be an admin to create issue labels' }
+    ]
+    mockClient.createIssueLabel.mockRejectedValue(adminError)
+    
+    const LabelCreate = (await import('../../../src/commands/label/create.js')).default
+    const cmd = new LabelCreate([], {} as any)
+    
+    try {
+      await cmd.runWithFlags({
+        color: '#FF0000',
+        name: 'test',
+        team: 'ENG',
+      })
+    } catch (error) {
+      expect(error.message).toContain('admin')
+      expect(error.message).toContain('permissions')
+    }
+    
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Alternatives'))
+  })
 })

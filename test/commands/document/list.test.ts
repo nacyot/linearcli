@@ -280,4 +280,29 @@ describe('document list command', () => {
       }),
     )
   })
+
+  it('should show helpful message when no documents found', async () => {
+    const mockDocuments = { nodes: [] }
+    mockClient.documents.mockResolvedValue(mockDocuments)
+    
+    const DocumentList = (await import('../../../src/commands/document/list.js')).default
+    const cmd = new DocumentList([], {} as any)
+    await cmd.runWithFlags({})
+    
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('No documents found'))
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Possible reasons'))
+  })
+
+  it('should not show help message when using JSON output', async () => {
+    const mockDocuments = { nodes: [] }
+    mockClient.documents.mockResolvedValue(mockDocuments)
+    
+    const DocumentList = (await import('../../../src/commands/document/list.js')).default
+    const cmd = new DocumentList([], {} as any)
+    await cmd.runWithFlags({ json: true })
+    
+    const output = JSON.parse(logSpy.mock.calls[0][0])
+    expect(output).toEqual([])
+    expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining('Possible reasons'))
+  })
 })

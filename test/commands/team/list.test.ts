@@ -119,6 +119,7 @@ describe('team list command', () => {
       filter: { name: { containsIgnoreCase: 'eng' } },
       first: 50,
       includeArchived: false,
+      orderBy: 'updatedAt',
     })
   })
 
@@ -134,5 +135,88 @@ describe('team list command', () => {
     await cmd.runWithFlags({})
     
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('No teams found'))
+  })
+
+  it('should order teams by updatedAt by default', async () => {
+    const mockTeams = {
+      nodes: [
+        {
+          description: 'Engineering team',
+          id: 'team-1',
+          key: 'ENG',
+          memberCount: 10,
+          name: 'Engineering',
+        },
+      ],
+    }
+    
+    mockClient.teams.mockResolvedValue(mockTeams)
+    
+    const TeamList = (await import('../../../src/commands/team/list.js')).default
+    const cmd = new TeamList([], {} as any)
+    await cmd.runWithFlags({})
+    
+    expect(mockClient.teams).toHaveBeenCalledWith({
+      first: 50,
+      includeArchived: false,
+      orderBy: 'updatedAt',
+    })
+  })
+
+  it('should allow ordering by different fields', async () => {
+    const mockTeams = {
+      nodes: [
+        {
+          description: 'Engineering team',
+          id: 'team-1',
+          key: 'ENG',
+          memberCount: 10,
+          name: 'Engineering',
+        },
+      ],
+    }
+    
+    mockClient.teams.mockResolvedValue(mockTeams)
+    
+    const TeamList = (await import('../../../src/commands/team/list.js')).default
+    const cmd = new TeamList([], {} as any)
+    await cmd.runWithFlags({ 'order-by': 'createdAt' })
+    
+    expect(mockClient.teams).toHaveBeenCalledWith({
+      first: 50,
+      includeArchived: false,
+      orderBy: 'createdAt',
+    })
+  })
+
+  it('should combine orderBy with other filters', async () => {
+    const mockTeams = {
+      nodes: [
+        {
+          description: 'Engineering team',
+          id: 'team-1',
+          key: 'ENG',
+          memberCount: 10,
+          name: 'Engineering',
+        },
+      ],
+    }
+    
+    mockClient.teams.mockResolvedValue(mockTeams)
+    
+    const TeamList = (await import('../../../src/commands/team/list.js')).default
+    const cmd = new TeamList([], {} as any)
+    await cmd.runWithFlags({ 
+      'order-by': 'createdAt',
+      query: 'eng',
+      limit: 100
+    })
+    
+    expect(mockClient.teams).toHaveBeenCalledWith({
+      filter: { name: { containsIgnoreCase: 'eng' } },
+      first: 100,
+      includeArchived: false,
+      orderBy: 'createdAt',
+    })
   })
 })
