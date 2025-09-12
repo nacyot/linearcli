@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest'
 import chalk from 'chalk'
+import { describe, expect, it } from 'vitest'
 
-import { formatTable, truncateText, formatState, formatDate } from '../../src/utils/table-formatter.js'
+import { formatDate, formatState, formatTable, truncateText } from '../../src/utils/table-formatter.js'
 
 describe('Table Formatter', () => {
   describe('formatTable', () => {
@@ -100,9 +100,9 @@ describe('Table Formatter', () => {
 
     it('should handle compact mode', () => {
       const options = {
+        compact: true,
         headers: ['ID', 'Title'],
         rows: [['1', 'Test']],
-        compact: true,
       }
       
       const result = formatTable(options)
@@ -146,25 +146,25 @@ describe('Table Formatter', () => {
 
   describe('formatState', () => {
     it('should format backlog state', () => {
-      const state = { type: 'backlog', name: 'Backlog' }
+      const state = { name: 'Backlog', type: 'backlog' }
       const result = formatState(state)
       expect(result).toContain('Backlog')
     })
 
     it('should format in progress state', () => {
-      const state = { type: 'started', name: 'In Progress' }
+      const state = { name: 'In Progress', type: 'started' }
       const result = formatState(state)
       expect(result).toContain('In Progress')
     })
 
     it('should format completed state', () => {
-      const state = { type: 'completed', name: 'Done' }
+      const state = { name: 'Done', type: 'completed' }
       const result = formatState(state)
       expect(result).toContain('Done')
     })
 
     it('should format canceled state', () => {
-      const state = { type: 'canceled', name: 'Canceled' }
+      const state = { name: 'Canceled', type: 'canceled' }
       const result = formatState(state)
       expect(result).toContain('Canceled')
     })

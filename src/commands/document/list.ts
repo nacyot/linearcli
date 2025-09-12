@@ -2,7 +2,7 @@ import { Command, Flags } from '@oclif/core'
 import chalk from 'chalk'
 
 import { getLinearClient, hasApiKey } from '../../services/linear.js'
-import { formatTable, truncateText, formatDate } from '../../utils/table-formatter.js'
+import { formatDate, formatTable, truncateText } from '../../utils/table-formatter.js'
 
 export default class DocumentList extends Command {
   static description = 'List documents in your Linear workspace'

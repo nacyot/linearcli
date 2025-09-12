@@ -1,5 +1,5 @@
-import { Command, Flags } from '@oclif/core'
 import { IssueRelationType } from '@linear/sdk'
+import { Command, Flags } from '@oclif/core'
 import chalk from 'chalk'
 
 import { getLinearClient, hasApiKey } from '../../services/linear.js'

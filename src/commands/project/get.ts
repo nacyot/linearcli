@@ -76,6 +76,12 @@ export default class ProjectGet extends Command {
     }
   }
 
+  private createProgressBar(progress: number, width: number): string {
+    const filled = Math.round(progress * width)
+    const empty = width - filled
+    return chalk.green('█'.repeat(filled)) + chalk.gray('░'.repeat(empty))
+  }
+
   private async displayProject(project: any): Promise<void> {
     console.log('')
     
@@ -189,11 +195,5 @@ export default class ProjectGet extends Command {
         return state || 'Unknown'
       }
     }
-  }
-
-  private createProgressBar(progress: number, width: number): string {
-    const filled = Math.round(progress * width)
-    const empty = width - filled
-    return chalk.green('█'.repeat(filled)) + chalk.gray('░'.repeat(empty))
   }
 }

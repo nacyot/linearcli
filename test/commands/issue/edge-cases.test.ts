@@ -49,7 +49,6 @@ describe('issue commands - edge cases', () => {
       mockClient.teams.mockResolvedValue(mockTeams)
       
       const mockIssue = {
-        success: true,
         issue: {
           assignee: null,
           createdAt: new Date().toISOString(),
@@ -62,6 +61,7 @@ describe('issue commands - edge cases', () => {
           title: '한글 제목입니다',
           url: 'https://linear.app/team/issue/ENG-100',
         },
+        success: true,
       }
       mockClient.createIssue.mockResolvedValue(mockIssue)
       
@@ -89,7 +89,6 @@ describe('issue commands - edge cases', () => {
       mockClient.teams.mockResolvedValue(mockTeams)
       
       const mockIssue = {
-        success: true,
         issue: {
           assignee: null,
           createdAt: new Date().toISOString(),
@@ -102,6 +101,7 @@ describe('issue commands - edge cases', () => {
           title: '🔥 Hot fix needed 🚨',
           url: 'https://linear.app/team/issue/ENG-101',
         },
+        success: true,
       }
       mockClient.createIssue.mockResolvedValue(mockIssue)
       
@@ -356,7 +356,6 @@ describe('issue commands - edge cases', () => {
       mockClient.teams.mockResolvedValue(mockTeams)
       
       const mockIssue = {
-        success: true,
         issue: {
           dueDate: '2025-12-31T00:00:00.000Z',
           id: 'issue-1',
@@ -364,6 +363,7 @@ describe('issue commands - edge cases', () => {
           title: 'Test',
           url: 'https://linear.app/team/issue/ENG-106',
         },
+        success: true,
       }
       mockClient.createIssue.mockResolvedValue(mockIssue)
       

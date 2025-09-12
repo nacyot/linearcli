@@ -220,16 +220,6 @@ export default class ProjectUpdate extends Command {
     }
   }
 
-  private parseDate(dateStr: string): string {
-    // If already ISO format, return as is
-    if (dateStr.includes('T')) {
-      return dateStr
-    }
-    
-    // Convert YYYY-MM-DD to ISO format
-    return new Date(dateStr).toISOString()
-  }
-
   private formatState(state: string): string {
     switch (state) {
       case 'canceled': {
@@ -252,5 +242,15 @@ export default class ProjectUpdate extends Command {
         return state || 'Unknown'
       }
     }
+  }
+
+  private parseDate(dateStr: string): string {
+    // If already ISO format, return as is
+    if (dateStr.includes('T')) {
+      return dateStr
+    }
+    
+    // Convert YYYY-MM-DD to ISO format
+    return new Date(dateStr).toISOString()
   }
 }

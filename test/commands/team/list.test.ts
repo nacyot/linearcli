@@ -207,9 +207,9 @@ describe('team list command', () => {
     const TeamList = (await import('../../../src/commands/team/list.js')).default
     const cmd = new TeamList([], {} as any)
     await cmd.runWithFlags({ 
+      limit: 100,
       'order-by': 'createdAt',
-      query: 'eng',
-      limit: 100
+      query: 'eng'
     })
     
     expect(mockClient.teams).toHaveBeenCalledWith({

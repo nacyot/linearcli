@@ -3,17 +3,17 @@ import stringWidth from 'string-width'
 import { getBorderCharacters, table } from 'table'
 
 export interface TableOptions {
+  compact?: boolean
   headers: string[]
   rows: string[][]
   showHeader?: boolean
-  compact?: boolean
 }
 
 /**
  * Format data as a GitHub-style table with proper Unicode/CJK support
  */
 export function formatTable(options: TableOptions): string {
-  const { headers, rows, showHeader = true, compact = false } = options
+  const { compact = false, headers, rows, showHeader = true } = options
   
   // Prepare data with optional header
   const data = showHeader 
@@ -27,15 +27,15 @@ export function formatTable(options: TableOptions): string {
       paddingLeft: 0,
       paddingRight: compact ? 1 : 2,
     },
-    drawHorizontalLine: (lineIndex: number, rowCount: number) => {
-      // Only draw line after header if showHeader is true
-      return showHeader && lineIndex === 1
-    },
-    singleLine: true,
     columns: headers.map(() => ({
       truncate: 100,
       wrapWord: false,
     })),
+    drawHorizontalLine(lineIndex: number, rowCount: number) {
+      // Only draw line after header if showHeader is true
+      return showHeader && lineIndex === 1
+    },
+    singleLine: true,
   }
   
   // Generate table with proper width calculation
@@ -76,6 +76,7 @@ export function truncateText(text: string, maxWidth: number): string {
     if (width + charWidth > targetWidth) {
       break
     }
+
     truncated += char
     width += charWidth
   }
@@ -90,23 +91,34 @@ export function formatState(state: any): string {
   if (!state) return chalk.gray('Unknown')
   
   const name = state.name || 'Unknown'
-  const type = state.type
+  const {type} = state
   
   // If type is available, use it for coloring
   if (type) {
     switch (type) {
-      case 'backlog':
+      case 'backlog': {
         return chalk.gray(name)
-      case 'canceled':
+      }
+
+      case 'canceled': {
         return chalk.red(name)
-      case 'completed':
+      }
+
+      case 'completed': {
         return chalk.green(name)
-      case 'started':
+      }
+
+      case 'started': {
         return chalk.yellow(name)
-      case 'unstarted':
+      }
+
+      case 'unstarted': {
         return chalk.blue(name)
-      default:
+      }
+
+      default: {
         return name
+      }
     }
   }
   
@@ -114,13 +126,21 @@ export function formatState(state: any): string {
   const lowerName = name.toLowerCase()
   if (lowerName.includes('done') || lowerName.includes('completed') || lowerName.includes('closed')) {
     return chalk.green(name)
-  } else if (lowerName.includes('progress') || lowerName.includes('started') || lowerName.includes('active')) {
+  }
+
+ if (lowerName.includes('progress') || lowerName.includes('started') || lowerName.includes('active')) {
     return chalk.yellow(name)
-  } else if (lowerName.includes('cancel') || lowerName.includes('rejected')) {
+  }
+
+ if (lowerName.includes('cancel') || lowerName.includes('rejected')) {
     return chalk.red(name)
-  } else if (lowerName.includes('todo') || lowerName.includes('backlog') || lowerName.includes('triage')) {
+  }
+
+ if (lowerName.includes('todo') || lowerName.includes('backlog') || lowerName.includes('triage')) {
     return chalk.gray(name)
-  } else if (lowerName.includes('review') || lowerName.includes('waiting')) {
+  }
+
+ if (lowerName.includes('review') || lowerName.includes('waiting')) {
     return chalk.blue(name)
   }
   
@@ -131,23 +151,23 @@ export function formatState(state: any): string {
 /**
  * Format date in a consistent way
  */
-export function formatDate(date: Date | string | null | undefined): string {
+export function formatDate(date: Date | null | string | undefined): string {
   if (!date) return chalk.gray('-')
   
   const d = new Date(date)
   if (isNaN(d.getTime())) return chalk.gray('-')
   
   return d.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
     day: 'numeric',
+    month: 'short',
+    year: 'numeric',
   })
 }
 
 /**
  * Format percentage
  */
-export function formatPercent(value: number | null | undefined): string {
+export function formatPercent(value: null | number | undefined): string {
   if (value === null || value === undefined) return chalk.gray('0%')
   return `${Math.round(value * 100)}%`
 }

@@ -11,8 +11,7 @@ export default class DocumentGet extends Command {
       required: false,
     }),
   }
-
-  static description = 'Get a specific document by ID or slug'
+static description = 'Get a specific document by ID or slug'
   static examples = [
     '<%= config.bin %> <%= command.id %> doc-123',
     '<%= config.bin %> <%= command.id %> my-document-slug',
@@ -111,11 +110,7 @@ export default class DocumentGet extends Command {
     for (const line of lines) {
       if (totalLength + line.length > maxLength) {
         const remaining = maxLength - totalLength
-        if (remaining > 10) {
-          preview += line.slice(0, remaining) + '...'
-        } else {
-          preview += '...'
-        }
+        preview += remaining > 10 ? line.slice(0, remaining) + '...' : '...';
         preview += chalk.gray(' (truncated)')
         break
       }

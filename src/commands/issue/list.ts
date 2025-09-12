@@ -128,8 +128,8 @@ static flags = {
       const issuesWithState = await Promise.all(
         issues.nodes.map(async (issue: any) => ({
           ...issue,
-          state: await issue.state,
-          assignee: await issue.assignee
+          assignee: await issue.assignee,
+          state: await issue.state
         }))
       )
       

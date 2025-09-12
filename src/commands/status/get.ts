@@ -10,8 +10,7 @@ export default class StatusGet extends Command {
       required: false,
     }),
   }
-
-  static description = 'Get workflow state details by ID or name'
+static description = 'Get workflow state details by ID or name'
   static examples = [
     '<%= config.bin %> <%= command.id %> state-123',
     '<%= config.bin %> <%= command.id %> --name "In Progress" --team ENG',

@@ -2,7 +2,7 @@ import { Command, Flags } from '@oclif/core'
 import chalk from 'chalk'
 
 import { getLinearClient, hasApiKey } from '../../services/linear.js'
-import { formatTable, formatState } from '../../utils/table-formatter.js'
+import { formatState, formatTable } from '../../utils/table-formatter.js'
 
 export default class StatusList extends Command {
   static description = 'List workflow states for a team'
