@@ -85,11 +85,15 @@ static flags = {
       const filter: LinearDocument.IssueFilter = {}
       
       // Team filter - resolve first as it's needed for state resolution
-      let teamId: string | null = null
+      let teamId: null | string = null
       if (flags.team) {
         teamId = await this.resolveTeamId(client, flags.team)
         if (teamId) {
           filter.team = { id: { eq: teamId } }
+        } else {
+          // Team not found - return empty results
+          console.log(chalk.yellow(`Team "${flags.team}" not found`))
+          return
         }
       }
       
@@ -98,6 +102,10 @@ static flags = {
         const userId = await this.resolveUserId(client, flags.assignee)
         if (userId) {
           filter.assignee = { id: { eq: userId } }
+        } else {
+          // Assignee not found - return empty results
+          console.log(chalk.yellow(`Assignee "${flags.assignee}" not found`))
+          return
         }
       }
       
@@ -106,6 +114,10 @@ static flags = {
         const stateId = await this.resolveStateId(client, flags.state, teamId)
         if (stateId) {
           filter.state = { id: { eq: stateId } }
+        } else {
+          // State not found - return empty results
+          console.log(chalk.yellow(`State "${flags.state}" not found${teamId ? ' in team' : ''}`))
+          return
         }
       }
       
@@ -114,6 +126,34 @@ static flags = {
         const labelId = await this.resolveLabelId(client, flags.label)
         if (labelId) {
           filter.labels = { id: { in: [labelId] } }
+        } else {
+          // Label not found - return empty results
+          console.log(chalk.yellow(`Label "${flags.label}" not found`))
+          return
+        }
+      }
+      
+      // Project filter
+      if (flags.project) {
+        const projectId = await this.resolveProjectId(client, flags.project)
+        if (projectId) {
+          filter.project = { id: { eq: projectId } }
+        } else {
+          // Project not found - return empty results
+          console.log(chalk.yellow(`Project "${flags.project}" not found`))
+          return
+        }
+      }
+      
+      // Cycle filter
+      if (flags.cycle) {
+        const cycleId = await this.resolveCycleId(client, flags.cycle, teamId)
+        if (cycleId) {
+          filter.cycle = { id: { eq: cycleId } }
+        } else {
+          // Cycle not found - return empty results
+          console.log(chalk.yellow(`Cycle "${flags.cycle}" not found${teamId ? ' in team' : ''}`))
+          return
         }
       }
       
@@ -185,6 +225,37 @@ static flags = {
     console.log(formatTable({ headers, rows }))
   }
 
+  private async resolveCycleId(client: LinearClient, nameOrNumber: string, teamId: null | string = null): Promise<null | string> {
+    // If it looks like an ID, return as is
+    if (nameOrNumber.includes('-')) {
+      return nameOrNumber
+    }
+    
+    // If we have a teamId, get cycles for that specific team
+    if (teamId) {
+      const team = await client.team(teamId)
+      const cycles = await team.cycles()
+      
+      // Try to match by name or number
+      const matchingCycle = cycles.nodes.find(
+        (cycle) => {
+          const nameMatch = cycle.name?.toLowerCase() === nameOrNumber.toLowerCase()
+          const numberMatch = cycle.number?.toString() === nameOrNumber
+          return nameMatch || numberMatch
+        }
+      )
+      return matchingCycle?.id || null
+    }
+    
+    // Otherwise search all cycles
+    const cycles = await client.cycles({
+      filter: { name: { containsIgnoreCase: nameOrNumber } },
+      first: 1,
+    })
+    
+    return cycles.nodes[0]?.id || null
+  }
+
   private async resolveLabelId(client: LinearClient, nameOrId: string): Promise<null | string> {
     if (nameOrId.includes('-')) {
       return nameOrId
@@ -197,7 +268,22 @@ static flags = {
     return labels.nodes[0]?.id || null
   }
 
-  private async resolveStateId(client: LinearClient, nameOrId: string, teamId: string | null = null): Promise<null | string> {
+  private async resolveProjectId(client: LinearClient, nameOrId: string): Promise<null | string> {
+    // If it looks like an ID, return as is
+    if (nameOrId.includes('-')) {
+      return nameOrId
+    }
+    
+    // Otherwise, look up by name
+    const projects = await client.projects({
+      filter: { name: { containsIgnoreCase: nameOrId } },
+      first: 1,
+    })
+    
+    return projects.nodes[0]?.id || null
+  }
+
+  private async resolveStateId(client: LinearClient, nameOrId: string, teamId: null | string = null): Promise<null | string> {
     if (nameOrId.includes('-')) {
       return nameOrId
     }
@@ -219,7 +305,7 @@ static flags = {
     
     return states.nodes[0]?.id || null
   }
-
+  
   private async resolveTeamId(client: LinearClient, nameOrId: string): Promise<null | string> {
     // If it looks like an ID, return as is
     if (nameOrId.includes('-')) {
@@ -243,7 +329,7 @@ static flags = {
     
     return teams.nodes[0]?.id || null
   }
-
+  
   private async resolveUserId(client: LinearClient, nameOrId: string): Promise<null | string> {
     if (nameOrId.includes('-')) {
       return nameOrId
