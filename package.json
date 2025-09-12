@@ -1,12 +1,16 @@
 {
   "name": "linearcli",
   "description": "Linear CLI - Developer-friendly Linear API client",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "author": "nacyot",
   "bin": {
+    "linearcli": "./bin/run.js",
     "lc": "./bin/run.js"
   },
   "bugs": "https://github.com/linearcli/linearcli/issues",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@inquirer/prompts": "^7.8.4",
     "@linear/sdk": "^59.1.0",
