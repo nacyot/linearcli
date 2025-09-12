@@ -1,0 +1,193 @@
+import { Command, Flags } from '@oclif/core'
+import chalk from 'chalk'
+
+import { getLinearClient, hasApiKey } from '../../services/linear.js'
+
+export default class CycleList extends Command {
+  static description = 'List cycles for a team'
+static examples = [
+    '<%= config.bin %> <%= command.id %> --team ENG',
+    '<%= config.bin %> <%= command.id %> --team ENG --type current',
+    '<%= config.bin %> <%= command.id %> --team Engineering --json',
+  ]
+static flags = {
+    json: Flags.boolean({
+      default: false,
+      description: 'Output as JSON',
+    }),
+    limit: Flags.integer({
+      char: 'n',
+      default: 50,
+      description: 'Number of cycles to fetch',
+    }),
+    team: Flags.string({
+      char: 't',
+      description: 'Team key or name (required)',
+      required: true,
+    }),
+    type: Flags.string({
+      default: 'all',
+      description: 'Cycle type (current, previous, next, all)',
+      options: ['current', 'previous', 'next', 'all'],
+    }),
+  }
+
+  async run(): Promise<void> {
+    const { flags } = await this.parse(CycleList)
+    await this.runWithFlags(flags)
+  }
+
+  async runWithFlags(flags: any): Promise<void> {
+    // Check API key
+    if (!hasApiKey()) {
+      throw new Error('No API key configured. Run "lc init" first.')
+    }
+
+    const client = getLinearClient()
+    
+    try {
+      // Resolve team
+      let team: any = null
+      
+      // Try by key first
+      const teams = await client.teams({
+        filter: { key: { eq: flags.team.toUpperCase() } },
+        first: 1,
+      })
+      
+      if (teams.nodes.length > 0) {
+        team = teams.nodes[0]
+      } else {
+        // Try by name
+        const teamsByName = await client.teams({
+          filter: { name: { eqIgnoreCase: flags.team } },
+          first: 1,
+        })
+        team = teamsByName.nodes[0]
+      }
+      
+      if (!team) {
+        throw new Error(`Team "${flags.team}" not found`)
+      }
+      
+      // Get cycles for the team
+      const teamInstance = await client.team(team.id)
+      let cycles: any
+      
+      switch (flags.type) {
+      case 'current': {
+        const activeCycle = await teamInstance.activeCycle
+        cycles = { nodes: activeCycle ? [activeCycle] : [] }
+      
+      break;
+      }
+
+      case 'next': {
+        cycles = await teamInstance.cycles({
+          filter: { startsAt: { gt: new Date().toISOString() } },
+          first: flags.limit,
+        })
+      
+      break;
+      }
+
+      case 'previous': {
+        cycles = await teamInstance.cycles({
+          filter: { endsAt: { lt: new Date().toISOString() } },
+          first: flags.limit,
+        })
+      
+      break;
+      }
+
+      default: {
+        // All cycles
+        cycles = await teamInstance.cycles({
+          first: flags.limit,
+        })
+      }
+      }
+      
+      // Output results
+      if (flags.json) {
+        const output = cycles.nodes.map((cycle: any) => ({
+          completedScopeHistory: cycle.completedScopeHistory,
+          endsAt: cycle.endsAt,
+          id: cycle.id,
+          name: cycle.name,
+          number: cycle.number,
+          progress: cycle.progress,
+          scopeHistory: cycle.scopeHistory,
+          startsAt: cycle.startsAt,
+        }))
+        console.log(JSON.stringify(output, null, 2))
+      } else {
+        if (cycles.nodes.length === 0) {
+          console.log(chalk.yellow('No cycles found'))
+          return
+        }
+        
+        console.log(chalk.bold.cyan(`\n📅 Cycles for ${team.name}:`))
+        console.log(chalk.gray('─'.repeat(80)))
+        
+        for (const cycle of cycles.nodes) {
+          const start = new Date(cycle.startsAt).toLocaleDateString('en-US', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          })
+          const end = new Date(cycle.endsAt).toLocaleDateString('en-US', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          })
+          
+          // Determine cycle status
+          const now = new Date()
+          const startsAt = new Date(cycle.startsAt)
+          const endsAt = new Date(cycle.endsAt)
+          let status = ''
+          
+          if (now < startsAt) {
+            status = chalk.blue('[UPCOMING]')
+          } else if (now > endsAt) {
+            status = chalk.gray('[COMPLETED]')
+          } else {
+            status = chalk.green('[ACTIVE]')
+          }
+          
+          console.log(`\n${chalk.bold(cycle.name || `Cycle ${cycle.number}`)} ${status}`)
+          console.log(chalk.gray(`  ${start} → ${end}`))
+          
+          if (cycle.progress !== undefined && cycle.progress !== null) {
+            const progressBar = this.createProgressBar(cycle.progress, 20)
+            console.log(`  Progress: ${progressBar} ${Math.round(cycle.progress * 100)}%`)
+          }
+          
+          if (cycle.scopeHistory && cycle.completedScopeHistory) {
+            const lastScope = cycle.scopeHistory.at(-1)
+            const lastCompleted = cycle.completedScopeHistory.at(-1)
+            if (lastScope && lastCompleted) {
+              console.log(chalk.gray(`  Scope: ${lastCompleted}/${lastScope} issues completed`))
+            }
+          }
+        }
+        
+        console.log('')
+      }
+      
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error
+      }
+
+      throw new Error(`Failed to fetch cycles for team "${flags.team}"`)
+    }
+  }
+
+  private createProgressBar(progress: number, width: number): string {
+    const filled = Math.round(progress * width)
+    const empty = width - filled
+    return chalk.green('█'.repeat(filled)) + chalk.gray('░'.repeat(empty))
+  }
+}
