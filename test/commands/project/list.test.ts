@@ -76,6 +76,9 @@ describe('project list command', () => {
           name: 'Team Project',
           progress: 0.3,
           state: 'started',
+          teams: vi.fn().mockResolvedValue({
+            nodes: [{ id: 'team-1' }]
+          })
         },
       ],
     }
@@ -92,10 +95,10 @@ describe('project list command', () => {
       first: 1,
     })
     expect(mockClient.projects).toHaveBeenCalledWith({
-      filter: { teams: { some: { id: { eq: 'team-1' } } } },
       first: 50,
       includeArchived: false,
     })
+    expect(mockProjects.nodes[0].teams).toHaveBeenCalled()
   })
 
   it('should handle JSON output', async () => {
