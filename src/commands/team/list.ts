@@ -9,6 +9,7 @@ export default class TeamList extends Command {
 static examples = [
     '<%= config.bin %> <%= command.id %>',
     '<%= config.bin %> <%= command.id %> --query "eng"',
+    '<%= config.bin %> <%= command.id %> --order-by createdAt',
     '<%= config.bin %> <%= command.id %> --json',
   ]
 static flags = {
@@ -24,6 +25,11 @@ static flags = {
       char: 'n',
       default: 50,
       description: 'Number of teams to fetch',
+    }),
+    'order-by': Flags.string({
+      default: 'updatedAt',
+      description: 'Order by field',
+      options: ['createdAt', 'updatedAt'],
     }),
     query: Flags.string({
       char: 'q',
@@ -47,8 +53,9 @@ static flags = {
     try {
       // Build options
       const options: any = {
-        first: flags.limit,
-        includeArchived: flags['include-archived'],
+        first: flags.limit || 50,
+        includeArchived: flags['include-archived'] || false,
+        orderBy: flags['order-by'] || 'updatedAt',
       }
       
       // Add filter if query provided
