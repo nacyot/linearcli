@@ -53,10 +53,9 @@ export default class DocumentGet extends Command {
       // Fetch document
       const document = await client.document(args[0])
       
-      // Ensure we have creator data
-      if (!document.creator) {
-        document.creator = { name: 'Unknown' }
-      }
+      // Get creator data
+      const creator = document.creator ? await document.creator : null
+      const project = document.project ? await document.project : null
       
       // Output results
       if (flags.json) {
@@ -67,14 +66,10 @@ export default class DocumentGet extends Command {
         console.log(chalk.gray('─'.repeat(50)))
         console.log(`ID: ${document.id}`)
         
-        if (document.slug) {
-          console.log(`Slug: ${document.slug}`)
-        }
+        console.log(`Creator: ${creator?.name || 'Unknown'}`)
         
-        console.log(`Creator: ${document.creator.name || 'Unknown'}`)
-        
-        if (document.project) {
-          console.log(`Project: ${document.project.name}`)
+        if (project) {
+          console.log(`Project: ${project.name}`)
         }
         
         console.log(`Created: ${formatDate(document.createdAt)}`)

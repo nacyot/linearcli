@@ -102,18 +102,20 @@ export default class LabelCreate extends Command {
         throw new Error('Failed to create label')
       }
       
+      const label = await payload.issueLabel
+      
       // Output results
       if (flags.json) {
-        console.log(JSON.stringify(payload.issueLabel, null, 2))
+        console.log(JSON.stringify(label, null, 2))
       } else {
         console.log(chalk.green('✓ Label created successfully!'))
         console.log('')
         console.log(chalk.bold('Label Details:'))
-        console.log(`  Name: ${payload.issueLabel.name}`)
-        console.log(`  Color: ${chalk.hex(payload.issueLabel.color)('●')} ${payload.issueLabel.color}`)
+        console.log(`  Name: ${label.name}`)
+        console.log(`  Color: ${chalk.hex(label.color)('●')} ${label.color}`)
         
-        if (payload.issueLabel.description) {
-          console.log(`  Description: ${payload.issueLabel.description}`)
+        if (label.description) {
+          console.log(`  Description: ${label.description}`)
         }
         
         if (flags.team) {
