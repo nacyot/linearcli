@@ -84,9 +84,10 @@ static flags = {
       // Build filter
       const filter: LinearDocument.IssueFilter = {}
       
-      // Team filter
+      // Team filter - resolve first as it's needed for state resolution
+      let teamId: string | null = null
       if (flags.team) {
-        const teamId = await this.resolveTeamId(client, flags.team)
+        teamId = await this.resolveTeamId(client, flags.team)
         if (teamId) {
           filter.team = { id: { eq: teamId } }
         }
@@ -100,9 +101,9 @@ static flags = {
         }
       }
       
-      // State filter
+      // State filter - pass teamId for context
       if (flags.state) {
-        const stateId = await this.resolveStateId(client, flags.state)
+        const stateId = await this.resolveStateId(client, flags.state, teamId)
         if (stateId) {
           filter.state = { id: { eq: stateId } }
         }
@@ -196,11 +197,22 @@ static flags = {
     return labels.nodes[0]?.id || null
   }
 
-  private async resolveStateId(client: LinearClient, nameOrId: string): Promise<null | string> {
+  private async resolveStateId(client: LinearClient, nameOrId: string, teamId: string | null = null): Promise<null | string> {
     if (nameOrId.includes('-')) {
       return nameOrId
     }
     
+    // If we have a teamId, get states for that specific team
+    if (teamId) {
+      const team = await client.team(teamId)
+      const states = await team.states()
+      const matchingState = states.nodes.find(
+        (state) => state.name.toLowerCase() === nameOrId.toLowerCase()
+      )
+      return matchingState?.id || null
+    }
+    
+    // Otherwise search all workflow states
     const states = await client.workflowStates({
       filter: { name: { eqIgnoreCase: nameOrId } },
     })
