@@ -25,6 +25,9 @@ static flags = {
       char: 'c',
       description: 'Cycle name or ID',
     }),
+    delegate: Flags.string({
+      description: 'Comma-separated delegate emails/names, or "none" to clear',
+    }),
     description: Flags.string({
       char: 'd',
       description: 'Issue description (markdown supported)',
@@ -39,6 +42,9 @@ static flags = {
     labels: Flags.string({
       char: 'l',
       description: 'Comma-separated label names or IDs',
+    }),
+    links: Flags.string({
+      description: 'Comma-separated issue IDs to link (e.g. ENG-123,ENG-124)',
     }),
     parent: Flags.string({
       description: 'Parent issue ID',
@@ -218,6 +224,52 @@ static flags = {
         hasChanges = true
       }
 
+      // Resolve and update delegates if provided
+      if (flags.delegate !== undefined) {
+        if (flags.delegate === 'none' || flags.delegate === '') {
+          input.subscriberIds = []
+        } else {
+          const delegates = flags.delegate.split(',').map((d: string) => d.trim())
+          const delegateIds: string[] = []
+          
+          for (const delegate of delegates) {
+            const userId = await this.resolveUserId(client, delegate)
+            if (userId) {
+              delegateIds.push(userId)
+            } else {
+              console.log(chalk.yellow(`Warning: Delegate "${delegate}" not found, skipping`))
+            }
+          }
+          
+          if (delegateIds.length > 0) {
+            input.subscriberIds = delegateIds
+          }
+        }
+        
+        hasChanges = true
+      }
+
+      // Resolve and add linked issues if provided
+      if (flags.links !== undefined) {
+        const issueKeys = flags.links.split(',').map((k: string) => k.trim())
+        const relatedIssueIds: string[] = []
+        
+        for (const issueKey of issueKeys) {
+          try {
+            const relatedIssue = await client.issue(issueKey)
+            relatedIssueIds.push(relatedIssue.id)
+          } catch {
+            console.log(chalk.yellow(`Warning: Issue "${issueKey}" not found, skipping`))
+          }
+        }
+        
+        if (relatedIssueIds.length > 0) {
+          input.relatedIssueIds = relatedIssueIds
+        }
+        
+        hasChanges = true
+      }
+
       // Check if there are any changes
       if (!hasChanges) {
         console.log(chalk.yellow('No changes provided'))
@@ -248,6 +300,8 @@ static flags = {
       if (input.cycleId !== undefined) updates.push('cycle')
       if (input.parentId !== undefined) updates.push('parent')
       if (input.estimate !== undefined) updates.push('estimate')
+      if (input.subscriberIds !== undefined) updates.push('delegates')
+      if (input.relatedIssueIds !== undefined) updates.push('links')
       
       if (updates.length > 0) {
         console.log(chalk.gray(`Updated: ${updates.join(', ')}`))

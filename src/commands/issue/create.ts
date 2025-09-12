@@ -19,6 +19,9 @@ static flags = {
       char: 'c',
       description: 'Cycle name or ID',
     }),
+    delegate: Flags.string({
+      description: 'Comma-separated delegate emails or names',
+    }),
     description: Flags.string({
       char: 'd',
       description: 'Issue description (markdown supported)',
@@ -29,6 +32,9 @@ static flags = {
     labels: Flags.string({
       char: 'l',
       description: 'Comma-separated label names or IDs',
+    }),
+    links: Flags.string({
+      description: 'Comma-separated issue IDs to link (e.g. ENG-123,ENG-124)',
     }),
     parent: Flags.string({
       description: 'Parent issue ID',
@@ -163,6 +169,44 @@ static flags = {
       // Add parent if provided (direct ID)
       if (flags.parent) {
         input.parentId = flags.parent
+      }
+
+      // Resolve and add delegates if provided
+      if (flags.delegate) {
+        const delegates = flags.delegate.split(',').map((d: string) => d.trim())
+        const delegateIds: string[] = []
+        
+        for (const delegate of delegates) {
+          const userId = await this.resolveUserId(client, delegate)
+          if (userId) {
+            delegateIds.push(userId)
+          } else {
+            console.log(chalk.yellow(`Warning: Delegate "${delegate}" not found, skipping`))
+          }
+        }
+        
+        if (delegateIds.length > 0) {
+          input.subscriberIds = delegateIds
+        }
+      }
+
+      // Resolve and add linked issues if provided
+      if (flags.links) {
+        const issueKeys = flags.links.split(',').map((k: string) => k.trim())
+        const relatedIssueIds: string[] = []
+        
+        for (const issueKey of issueKeys) {
+          try {
+            const issue = await client.issue(issueKey)
+            relatedIssueIds.push(issue.id)
+          } catch {
+            console.log(chalk.yellow(`Warning: Issue "${issueKey}" not found, skipping`))
+          }
+        }
+        
+        if (relatedIssueIds.length > 0) {
+          input.relatedIssueIds = relatedIssueIds
+        }
       }
 
       // Create the issue
