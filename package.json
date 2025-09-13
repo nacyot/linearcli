@@ -81,6 +81,9 @@
       },
       "project": {
         "description": "Manage projects"
+      },
+      "rule": {
+        "description": "Manage Linear CLI rules and guides"
       }
     }
   },
