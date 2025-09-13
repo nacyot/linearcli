@@ -1,10 +1,8 @@
-# Linear CLI Command Reference
-
 Use `lc` (after installing globally) or `npx linearctl` (without installation).
 
 ## Issues
 
-### List issues
+### lc issue list
 ```bash
 lc issue list [options]
   -t, --team <name>           Filter by team
@@ -19,12 +17,12 @@ lc issue list [options]
   --json                      Output as JSON
 ```
 
-### Get issue
+### lc issue get
 ```bash
 lc issue get <id> [--json]
 ```
 
-### Create issue
+### lc issue create
 ```bash
 lc issue create [options]
   -t, --title <text>          Issue title (required)
@@ -42,7 +40,7 @@ lc issue create [options]
   --links <ids>               Comma-separated issue IDs to link
 ```
 
-### Update issue
+### lc issue update
 ```bash
 lc issue update <id> [options]
   --title <text>              Issue title
@@ -60,7 +58,7 @@ lc issue update <id> [options]
   --links <ids>               Comma-separated issue IDs to link
 ```
 
-### My issues
+### lc issue mine
 ```bash
 lc issue mine [options]
   -s, --state <name>          Filter by state
@@ -71,12 +69,12 @@ lc issue mine [options]
 
 ## Comments
 
-### List comments
+### lc comment list
 ```bash
 lc comment list <issue-id> [--json]
 ```
 
-### Add comment
+### lc comment add
 ```bash
 lc comment add <issue-id> [options]
   -b, --body <text>           Comment body (required)
@@ -85,7 +83,7 @@ lc comment add <issue-id> [options]
 
 ## Teams
 
-### List teams
+### lc team list
 ```bash
 lc team list [options]
   -q, --query <text>          Search teams
@@ -94,14 +92,14 @@ lc team list [options]
   --json                      Output as JSON
 ```
 
-### Get team
+### lc team get
 ```bash
 lc team get <name-or-key> [--json]
 ```
 
 ## Users
 
-### List users
+### lc user list
 ```bash
 lc user list [options]
   -q, --query <text>          Search users
@@ -111,14 +109,14 @@ lc user list [options]
   --json                      Output as JSON
 ```
 
-### Get user
+### lc user get
 ```bash
 lc user get <name-or-email> [--json]
 ```
 
 ## Projects
 
-### List projects
+### lc project list
 ```bash
 lc project list [options]
   -t, --team <name>           Filter by team
@@ -129,12 +127,12 @@ lc project list [options]
   --json                      Output as JSON
 ```
 
-### Get project
+### lc project get
 ```bash
 lc project get <name-or-id> [--json]
 ```
 
-### Create project
+### lc project create
 ```bash
 lc project create [options]
   -n, --name <text>           Project name (required)
@@ -146,7 +144,7 @@ lc project create [options]
   --target-date <YYYY-MM-DD>  Target date
 ```
 
-### Update project
+### lc project update
 ```bash
 lc project update <id> [options]
   -n, --name <text>           Project name
@@ -159,7 +157,7 @@ lc project update <id> [options]
 
 ## Labels
 
-### List labels
+### lc label list
 ```bash
 lc label list [options]
   -t, --team <name>           Filter by team
@@ -167,7 +165,7 @@ lc label list [options]
   --json                      Output as JSON
 ```
 
-### Create label
+### lc label create
 ```bash
 lc label create [options]
   -n, --name <text>           Label name (required)
@@ -178,19 +176,19 @@ lc label create [options]
 
 ## Workflow States
 
-### List states
+### lc status list
 ```bash
 lc status list --team <name> [--json]
 ```
 
-### Get state
+### lc status get
 ```bash
 lc status get <name-or-id> --team <name> [--json]
 ```
 
 ## Cycles
 
-### List cycles
+### lc cycle list
 ```bash
 lc cycle list --team <name> [options]
   --type <type>               Type (current, previous, next, all)
@@ -200,7 +198,7 @@ lc cycle list --team <name> [options]
 
 ## Documents
 
-### List documents
+### lc document list
 ```bash
 lc document list [options]
   -q, --query <text>          Search documents
@@ -211,17 +209,37 @@ lc document list [options]
   --json                      Output as JSON
 ```
 
-### Get document
+### lc document get
 ```bash
 lc document get <id-or-slug> [--json]
 ```
 
+## Rules
+
+### lc rule add
+```bash
+lc rule add <path>            Copy Linear CLI guide to project
+```
+
 ## Other Commands
 
+### lc init
 ```bash
 lc init                       Configure API key
+```
+
+### lc doctor
+```bash
 lc doctor                     Check configuration
+```
+
+### lc version
+```bash
 lc version                    Show version
+```
+
+### lc help
+```bash
 lc --help                     Show help
 lc <command> --help          Show command help
 ```
