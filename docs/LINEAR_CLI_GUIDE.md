@@ -144,7 +144,9 @@ lc issue create \
   --labels "bug,urgent" \
   --due-date "2025-12-31" \
   --project "Q4 Goals" \
-  --cycle "Sprint 23"
+  --cycle "Sprint 23" \
+  --delegate "reviewer@example.com" \
+  --links "ENG-100,ENG-101"
 ```
 
 **Options:**
@@ -159,11 +161,32 @@ lc issue create \
 - `--project <name>`: Project name or ID
 - `-c, --cycle <name>`: Cycle name or ID
 - `--parent <id>`: Parent issue ID
+- `--delegate <emails>`: Comma-separated delegate emails or names
+- `--links <ids>`: Comma-separated issue IDs to link (e.g. ENG-123,ENG-124)
 
 #### Update Issue
+
+**Options:**
+- `--title <text>`: Issue title
+- `--description <text>`: Issue description (markdown supported)
+- `-a, --assignee <name>`: Assignee name or ID (use "none" to clear)
+- `-s, --state <name>`: State name or ID
+- `-p, --priority <0-4>`: Priority (0=None, 1=Urgent, 2=High, 3=Normal, 4=Low)
+- `-l, --labels <names>`: Comma-separated label names or IDs
+- `--due-date <YYYY-MM-DD>`: Due date (use "none" to clear)
+- `--project <name>`: Project name or ID
+- `-c, --cycle <name>`: Cycle name or ID
+- `--parent <id>`: Parent issue ID
+- `-e, --estimate <number>`: Story points estimate
+- `--delegate <emails>`: Comma-separated delegate emails (use "none" to clear)
+- `--links <ids>`: Comma-separated issue IDs to link
+
 ```bash
 # Update single field
 lc issue update ENG-123 --state "In Progress"
+
+# Update estimate (story points)
+lc issue update ENG-123 --estimate 8
 
 # Update multiple fields
 lc issue update ENG-123 \
@@ -172,8 +195,19 @@ lc issue update ENG-123 \
   --priority 1 \
   --state "In Review"
 
+# Add estimate and delegates
+lc issue update ENG-123 \
+  --estimate 5 \
+  --delegate "john@example.com,jane@example.com"
+
+# Link to other issues
+lc issue update ENG-123 --links "ENG-124,ENG-125"
+
 # Remove assignee
 lc issue update ENG-123 --assignee none
+
+# Clear delegates
+lc issue update ENG-123 --delegate none
 
 # Clear due date
 lc issue update ENG-123 --due-date none
