@@ -48,6 +48,7 @@
   "files": [
     "./bin",
     "./dist",
+    "./docs",
     "./oclif.manifest.json"
   ],
   "homepage": "https://github.com/nacyot/linearctl",
