@@ -1,14 +1,6 @@
 # Linear CLI Command Reference
 
-## Setup
-
-```bash
-# Install
-npm install -g linearctl
-
-# Configure API key
-lc init
-```
+Use `lc` (after installing globally) or `npx linearctl` (without installation).
 
 ## Issues
 
@@ -227,19 +219,9 @@ lc document get <id-or-slug> [--json]
 ## Other Commands
 
 ```bash
-lc doctor                     Check configuration and connection
+lc init                       Configure API key
+lc doctor                     Check configuration
 lc version                    Show version
 lc --help                     Show help
 lc <command> --help          Show command help
-```
-
-## Output Formats
-
-- **Default**: Human-readable table format with colors
-- **JSON**: Use `--json` flag for machine-readable output
-
-```bash
-# Examples
-lc issue list --team ENG --json | jq '.[].title'
-lc issue get ENG-123 --json | jq '.state.name'
 ```
