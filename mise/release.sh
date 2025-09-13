@@ -75,6 +75,25 @@ if [ "$CURRENT_BRANCH" != "main" ]; then
     exit 1
 fi
 
+# Check if remote is up to date
+echo "Checking remote status..."
+git fetch origin main --quiet
+LOCAL_COMMIT=$(git rev-parse HEAD)
+REMOTE_COMMIT=$(git rev-parse origin/main)
+
+if [ "$LOCAL_COMMIT" != "$REMOTE_COMMIT" ]; then
+    echo "Warning: Your branch is not in sync with origin/main"
+    echo "  Local:  $LOCAL_COMMIT"
+    echo "  Remote: $REMOTE_COMMIT"
+    echo ""
+    echo "Consider running 'git pull' or 'git push' first."
+    read -p "Continue anyway? (y/N): " continue_confirm
+    if [[ ! "$continue_confirm" =~ ^[Yy]$ ]]; then
+        echo "Aborted."
+        exit 1
+    fi
+fi
+
 # Run tests first - fail fast if tests don't pass
 echo "Running tests..."
 npm test
@@ -158,13 +177,7 @@ TAG_NAME="v$NEW_VERSION"
 git tag -a "$TAG_NAME" -m "Release version $NEW_VERSION"
 TAG_CREATED=true
 
-# Push to remote
-echo "Pushing to remote..."
-git push origin main
-git push origin "$TAG_NAME"
-PUSHED_TO_REMOTE=true
-
-# Ask about publishing to npm
+# Ask about publishing to npm BEFORE pushing to remote
 echo ""
 read -p "Publish to npm? (y/N): " publish_confirm
 
@@ -177,13 +190,20 @@ if [[ "$publish_confirm" =~ ^[Yy]$ ]]; then
         npm login
     fi
     
-    # Publish to npm
+    # Publish to npm first
     if npm publish; then
+        echo "✓ Package published successfully to npm"
+        echo ""
+        
+        # Only push to remote AFTER successful npm publish
+        echo "Pushing to remote..."
+        git push origin main
+        git push origin "$TAG_NAME"
+        PUSHED_TO_REMOTE=true
+        
         # Success - disable trap
         trap - EXIT
         
-        echo "✓ Package published successfully to npm"
-        echo ""
         echo "View your package at: https://www.npmjs.com/package/linearctl"
         echo ""
         echo "Test with:"
@@ -191,15 +211,39 @@ if [[ "$publish_confirm" =~ ^[Yy]$ ]]; then
         echo "  npx linearctl issue list"
     else
         echo "Error: npm publish failed"
+        echo "Note: Changes were not pushed to remote."
         exit 1
     fi
 else
-    # Success without npm publish - disable trap
-    trap - EXIT
-    
+    # User chose not to publish to npm
     echo "Skipping npm publishing."
-    echo "You can manually publish later with:"
-    echo "  npm publish"
+    echo ""
+    read -p "Push changes to remote anyway? (y/N): " push_confirm
+    
+    if [[ "$push_confirm" =~ ^[Yy]$ ]]; then
+        echo "Pushing to remote..."
+        git push origin main
+        git push origin "$TAG_NAME"
+        PUSHED_TO_REMOTE=true
+        
+        # Success - disable trap
+        trap - EXIT
+        
+        echo "✓ Changes pushed to remote."
+        echo "You can manually publish to npm later with:"
+        echo "  npm publish"
+    else
+        echo "Changes not pushed to remote."
+        echo "To push later, run:"
+        echo "  git push origin main"
+        echo "  git push origin $TAG_NAME"
+        echo ""
+        echo "To publish to npm, run:"
+        echo "  npm publish"
+        
+        # Success without push - disable trap
+        trap - EXIT
+    fi
 fi
 
 echo ""
