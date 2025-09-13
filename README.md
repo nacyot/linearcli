@@ -6,10 +6,10 @@ A powerful command-line interface for [Linear](https://linear.app), designed for
 
 ```bash
 # Quick run with npx
-npx linearcmd --help
+npx linearctl --help
 
 # Or install globally
-npm install -g linearcmd
+npm install -g linearctl
 ```
 
 ## Setup

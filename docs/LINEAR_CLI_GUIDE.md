@@ -36,8 +36,8 @@ Linear CLI (`lc`) is a comprehensive command-line interface for Linear, designed
 
 ### Install from Source
 ```bash
-git clone https://github.com/yourusername/linearcmd.git
-cd linearcmd
+git clone https://github.com/yourusername/linearctl.git
+cd linearctl
 npm install
 npm run build
 npm link

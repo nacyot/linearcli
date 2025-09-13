@@ -6,8 +6,8 @@ import path from 'node:path'
 // Config store for API keys and other settings
 const config = new Conf({
   configName: 'config',
-  cwd: path.join(os.homedir(), '.linearcmd'),
-  projectName: 'linearcmd',
+  cwd: path.join(os.homedir(), '.linearctl'),
+  projectName: 'linearctl',
 })
 
 // Singleton client instance

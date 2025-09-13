@@ -1,13 +1,13 @@
 {
-  "name": "linearcmd",
+  "name": "linearctl",
   "description": "Linear CLI - Developer-friendly Linear API client",
   "version": "0.1.0",
   "author": "nacyot",
   "bin": {
-    "linearcmd": "./bin/run.js",
+    "linearctl": "./bin/run.js",
     "lc": "./bin/run.js"
   },
-  "bugs": "https://github.com/nacyot/linearcmd/issues",
+  "bugs": "https://github.com/nacyot/linearctl/issues",
   "publishConfig": {
     "access": "public"
   },
@@ -50,7 +50,7 @@
     "./dist",
     "./oclif.manifest.json"
   ],
-  "homepage": "https://github.com/nacyot/linearcmd",
+  "homepage": "https://github.com/nacyot/linearctl",
   "keywords": [
     "oclif"
   ],
@@ -84,7 +84,7 @@
       }
     }
   },
-  "repository": "nacyot/linearcmd",
+  "repository": "nacyot/linearctl",
   "scripts": {
     "build": "shx rm -rf dist && tsc -b",
     "lint": "eslint",
