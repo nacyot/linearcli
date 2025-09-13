@@ -34,9 +34,18 @@ Linear CLI (`lc`) is a comprehensive command-line interface for Linear, designed
 - Node.js 18.x or higher
 - npm or yarn
 
+### Install from npm
+```bash
+# Install globally
+npm install -g linearctl
+
+# Or use with npx
+npx linearctl --help
+```
+
 ### Install from Source
 ```bash
-git clone https://github.com/yourusername/linearctl.git
+git clone https://github.com/nacyot/linearctl.git
 cd linearctl
 npm install
 npm run build
@@ -61,7 +70,7 @@ You'll be prompted to enter your Linear API key. Get one from:
 https://linear.app/settings/api
 
 ### Configuration File
-The API key is stored in `~/.linear-cli/config.json`:
+The API key is stored in `~/.linearctl/config.json`:
 ```json
 {
   "apiKey": "lin_api_..."
@@ -537,7 +546,7 @@ Linear API has rate limits. The CLI respects these limits but for bulk operation
 
 ## Security
 
-- API keys are stored locally in `~/.linear-cli/config.json`
+- API keys are stored locally in `~/.linearctl/config.json`
 - Never commit your API key to version control
 - Use environment variables for CI/CD: `LINEAR_API_KEY=xxx lc issue list`
 - Regularly rotate your API keys
@@ -562,4 +571,4 @@ MIT License - see LICENSE file for details
 
 ---
 
-*Linear CLI is not officially affiliated with Linear. It's a community tool built using Linear's public API.*
+*linearctl is not officially affiliated with Linear. It's a community tool built using Linear's public API.*
