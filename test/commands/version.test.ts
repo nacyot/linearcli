@@ -27,6 +27,6 @@ describe('version command', () => {
     const cmd = new Version([], {} as any)
     await cmd.run()
     
-    expect(logSpy).toHaveBeenCalledWith('0.1.0')
+    expect(logSpy).toHaveBeenCalledWith('0.1.1')
   })
 })
