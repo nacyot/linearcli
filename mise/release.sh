@@ -5,6 +5,52 @@ set -e
 # Set default version increment type if not provided
 VERSION_TYPE="${1:-patch}"
 
+# Variables to track what was created for rollback
+COMMIT_SHA=""
+TAG_NAME=""
+ORIGINAL_VERSION=""
+VERSION_BUMPED=false
+TAG_CREATED=false
+COMMIT_CREATED=false
+PUSHED_TO_REMOTE=false
+
+# Rollback function
+rollback() {
+    echo ""
+    echo "[rollback] Starting rollback..."
+    
+    # Reset version in package.json if it was bumped
+    if [ "$VERSION_BUMPED" = true ] && [ -n "$ORIGINAL_VERSION" ]; then
+        echo "[rollback] Restoring original version $ORIGINAL_VERSION..."
+        npm version "$ORIGINAL_VERSION" --no-git-tag-version --allow-same-version >/dev/null 2>&1 || true
+    fi
+    
+    # Delete local tag if created
+    if [ "$TAG_CREATED" = true ] && [ -n "$TAG_NAME" ]; then
+        echo "[rollback] Deleting local tag $TAG_NAME..."
+        git tag -d "$TAG_NAME" >/dev/null 2>&1 || true
+    fi
+    
+    # Reset commit if created
+    if [ "$COMMIT_CREATED" = true ]; then
+        echo "[rollback] Resetting commit..."
+        git reset --hard HEAD~1 >/dev/null 2>&1 || true
+    fi
+    
+    # Try to delete remote tag if pushed (might fail if not pushed)
+    if [ "$PUSHED_TO_REMOTE" = true ] && [ -n "$TAG_NAME" ]; then
+        echo "[rollback] Attempting to delete remote tag..."
+        git push origin --delete "$TAG_NAME" >/dev/null 2>&1 || true
+    fi
+    
+    echo "[rollback] Rollback complete."
+    echo ""
+    echo "You can try again with: mise release $VERSION_TYPE"
+}
+
+# Set up trap to rollback on error
+trap 'if [ $? -ne 0 ]; then rollback; fi' EXIT
+
 # Validate version increment type
 if [[ ! "$VERSION_TYPE" =~ ^(major|minor|patch)$ ]]; then
     echo "Error: Version type must be 'major', 'minor', or 'patch'"
@@ -42,19 +88,53 @@ echo "Building package..."
 npm run build
 
 # Read current version from package.json
-CURRENT_VERSION=$(node -p "require('./package.json').version")
-echo "Current version: $CURRENT_VERSION"
+ORIGINAL_VERSION=$(node -p "require('./package.json').version")
+echo "Current version: $ORIGINAL_VERSION"
 
-# Calculate new version using npm version (dry-run to preview)
-NEW_VERSION=$(npm version $VERSION_TYPE --no-git-tag-version --dry-run 2>/dev/null | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+' | head -1 | sed 's/^v//')
+# Calculate new version manually to avoid any npm version side effects
+CURRENT_MAJOR=$(echo $ORIGINAL_VERSION | cut -d. -f1)
+CURRENT_MINOR=$(echo $ORIGINAL_VERSION | cut -d. -f2)
+CURRENT_PATCH=$(echo $ORIGINAL_VERSION | cut -d. -f3)
+
+case "$VERSION_TYPE" in
+    major)
+        NEW_VERSION="$((CURRENT_MAJOR + 1)).0.0"
+        ;;
+    minor)
+        NEW_VERSION="$CURRENT_MAJOR.$((CURRENT_MINOR + 1)).0"
+        ;;
+    patch)
+        NEW_VERSION="$CURRENT_MAJOR.$CURRENT_MINOR.$((CURRENT_PATCH + 1))"
+        ;;
+esac
+
 echo "New version will be: $NEW_VERSION"
 
-# Update version in package.json and package-lock.json
-echo "Updating version..."
-npm version $VERSION_TYPE --no-git-tag-version
+# Check if tag already exists locally
+if git tag -l "v$NEW_VERSION" | grep -q "v$NEW_VERSION"; then
+    echo "Error: Tag v$NEW_VERSION already exists locally."
+    echo "Run: git tag -d v$NEW_VERSION"
+    exit 1
+fi
 
-# Read the actual new version from package.json
-NEW_VERSION=$(node -p "require('./package.json').version")
+# Check if tag exists on remote
+if git ls-remote --tags origin | grep -q "refs/tags/v$NEW_VERSION"; then
+    echo "Error: Tag v$NEW_VERSION already exists on remote."
+    echo "This version has likely already been released."
+    exit 1
+fi
+
+# Update version in package.json and package-lock.json
+echo "Updating version to $NEW_VERSION..."
+npm version $NEW_VERSION --no-git-tag-version --allow-same-version
+VERSION_BUMPED=true
+
+# Verify the version was updated correctly
+ACTUAL_VERSION=$(node -p "require('./package.json').version")
+if [ "$ACTUAL_VERSION" != "$NEW_VERSION" ]; then
+    echo "Error: Version update failed. Expected $NEW_VERSION but got $ACTUAL_VERSION"
+    exit 1
+fi
 echo "Version updated to: $NEW_VERSION"
 
 # Ensure oclif manifest is updated
@@ -69,15 +149,20 @@ if [ -f "oclif.manifest.json" ]; then
     git add oclif.manifest.json 2>/dev/null || true
 fi
 git commit -m "chore: release v$NEW_VERSION"
+COMMIT_CREATED=true
+COMMIT_SHA=$(git rev-parse HEAD)
 
 # Create git tag
 echo "Creating git tag..."
-git tag -a "v$NEW_VERSION" -m "Release version $NEW_VERSION"
+TAG_NAME="v$NEW_VERSION"
+git tag -a "$TAG_NAME" -m "Release version $NEW_VERSION"
+TAG_CREATED=true
 
 # Push to remote
 echo "Pushing to remote..."
 git push origin main
-git push origin "v$NEW_VERSION"
+git push origin "$TAG_NAME"
+PUSHED_TO_REMOTE=true
 
 # Ask about publishing to npm
 echo ""
@@ -94,18 +179,24 @@ if [[ "$publish_confirm" =~ ^[Yy]$ ]]; then
     
     # Publish to npm
     if npm publish; then
+        # Success - disable trap
+        trap - EXIT
+        
         echo "✓ Package published successfully to npm"
         echo ""
-        echo "View your package at: https://www.npmjs.com/package/linearcli"
+        echo "View your package at: https://www.npmjs.com/package/linearcmd"
         echo ""
         echo "Test with:"
-        echo "  npx linearcli --help"
-        echo "  npx linearcli issue list"
+        echo "  npx linearcmd --help"
+        echo "  npx linearcmd issue list"
     else
         echo "Error: npm publish failed"
         exit 1
     fi
 else
+    # Success without npm publish - disable trap
+    trap - EXIT
+    
     echo "Skipping npm publishing."
     echo "You can manually publish later with:"
     echo "  npm publish"
@@ -116,9 +207,9 @@ echo "🎉 Release complete!"
 echo "Version $NEW_VERSION has been released."
 echo ""
 echo "Next steps:"
-echo "- Create a GitHub release at: https://github.com/linearcli/linearcli/releases/new"
+echo "- Create a GitHub release at: https://github.com/nacyot/linearcmd/releases/new"
 echo "- Update CHANGELOG.md if you maintain one"
 echo ""
 echo "Users can now run:"
-echo "  npx linearcli --help"
-echo "  npm install -g linearcli && lc --help"
+echo "  npx linearcmd --help"
+echo "  npm install -g linearcmd && lc --help"
