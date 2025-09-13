@@ -1,608 +1,245 @@
-# Linear CLI User Guide
+# Linear CLI Command Reference
 
-## Table of Contents
-- [Overview](#overview)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Command Reference](#command-reference)
-  - [Issues](#issues)
-  - [Comments](#comments)
-  - [Teams](#teams)
-  - [Users](#users)
-  - [Projects](#projects)
-  - [Labels](#labels)
-  - [Workflow States](#workflow-states)
-  - [Cycles](#cycles)
-- [Output Formats](#output-formats)
-- [Advanced Usage](#advanced-usage)
-- [Troubleshooting](#troubleshooting)
+## Setup
 
-## Overview
-
-Linear CLI (`lc`) is a comprehensive command-line interface for Linear, designed to provide developers with fast, efficient access to Linear's features directly from the terminal. Built with TypeScript and the oclif framework, it offers GitHub CLI-style commands with human-readable output by default.
-
-### Key Features
-- **Non-interactive Commands**: All operations are non-interactive by design
-- **Human-Readable Output**: Beautiful table formatting with proper Unicode support
-- **JSON Support**: Optional JSON output for scripting and automation
-- **Smart Resolution**: Automatic name-to-ID resolution for teams, users, projects, etc.
-- **Comprehensive Coverage**: Full support for issues, comments, teams, projects, and more
-
-## Installation
-
-### Prerequisites
-- Node.js 18.x or higher
-- npm or yarn
-
-### Install from npm
 ```bash
-# Install globally
+# Install
 npm install -g linearctl
 
-# Or use with npx
-npx linearctl --help
-```
-
-### Install from Source
-```bash
-git clone https://github.com/nacyot/linearctl.git
-cd linearctl
-npm install
-npm run build
-npm link
-```
-
-### Verify Installation
-```bash
-lc --version
-lc --help
-```
-
-## Configuration
-
-### Initial Setup
-Initialize Linear CLI with your API key:
-```bash
+# Configure API key
 lc init
 ```
 
-You'll be prompted to enter your Linear API key. Get one from:
-https://linear.app/settings/api
+## Issues
 
-### Configuration File
-The API key is stored in `~/.linearctl/config.json`:
-```json
-{
-  "apiKey": "lin_api_..."
-}
+### List issues
+```bash
+lc issue list [options]
+  -t, --team <name>           Filter by team
+  -a, --assignee <name>       Filter by assignee
+  -s, --state <name>          Filter by state
+  -l, --label <name>          Filter by label
+  -p, --project <name>        Filter by project
+  -c, --cycle <name>          Filter by cycle
+  --limit <number>            Number of issues (max 250)
+  --include-archived          Include archived issues
+  --order-by <field>          Order by field (createdAt, updatedAt)
+  --json                      Output as JSON
 ```
 
-### Health Check
-Verify your configuration and connection:
+### Get issue
 ```bash
-lc doctor
+lc issue get <id> [--json]
 ```
 
-## Command Reference
-
-### Issues
-
-#### List Issues
+### Create issue
 ```bash
-# List all issues
-lc issue list
-
-# Filter by team
-lc issue list --team ENG
-
-# Filter by assignee
-lc issue list --assignee "John Doe"
-
-# Filter by state
-lc issue list --state "In Progress"
-
-# Combine filters
-lc issue list --team ENG --state "In Progress" --limit 20
-
-# JSON output
-lc issue list --json
+lc issue create [options]
+  -t, --title <text>          Issue title (required)
+  --team <name>               Team name or key (required)
+  -d, --description <text>    Issue description
+  -a, --assignee <name>       Assignee
+  -s, --state <name>          State
+  -p, --priority <0-4>        Priority (0=None, 1=Urgent, 2=High, 3=Normal, 4=Low)
+  -l, --labels <names>        Comma-separated labels
+  --due-date <YYYY-MM-DD>     Due date
+  --project <name>            Project
+  -c, --cycle <name>          Cycle
+  --parent <id>               Parent issue ID
+  --delegate <emails>         Comma-separated delegate emails
+  --links <ids>               Comma-separated issue IDs to link
 ```
 
-**Options:**
-- `-t, --team <name>`: Filter by team name or ID
-- `-a, --assignee <name>`: Filter by assignee name or ID
-- `-s, --state <name>`: Filter by state name or ID
-- `-l, --label <name>`: Filter by label name or ID
-- `-p, --project <name>`: Filter by project name or ID
-- `-c, --cycle <name>`: Filter by cycle name or ID
-- `--limit <number>`: Number of issues to fetch (max 250)
-- `--include-archived`: Include archived issues
-- `--order-by <field>`: Order by field (createdAt, updatedAt)
-- `--json`: Output as JSON
-
-#### Get Issue Details
+### Update issue
 ```bash
-# Get issue by ID
-lc issue get ENG-123
-
-# JSON output
-lc issue get ENG-123 --json
+lc issue update <id> [options]
+  --title <text>              Issue title
+  --description <text>        Issue description
+  -a, --assignee <name>       Assignee (use "none" to clear)
+  -s, --state <name>          State
+  -p, --priority <0-4>        Priority
+  -l, --labels <names>        Comma-separated labels
+  --due-date <YYYY-MM-DD>     Due date (use "none" to clear)
+  --project <name>            Project
+  -c, --cycle <name>          Cycle
+  --parent <id>               Parent issue ID
+  -e, --estimate <number>     Story points
+  --delegate <emails>         Comma-separated delegates (use "none" to clear)
+  --links <ids>               Comma-separated issue IDs to link
 ```
 
-#### Create Issue
+### My issues
 ```bash
-# Basic issue creation
-lc issue create --title "Bug fix" --team ENG
-
-# Full issue creation
-lc issue create \
-  --title "Implement new feature" \
-  --team ENG \
-  --description "Detailed description with **markdown**" \
-  --assignee "John Doe" \
-  --priority 2 \
-  --labels "bug,urgent" \
-  --due-date "2025-12-31" \
-  --project "Q4 Goals" \
-  --cycle "Sprint 23" \
-  --delegate "reviewer@example.com" \
-  --links "ENG-100,ENG-101"
+lc issue mine [options]
+  -s, --state <name>          Filter by state
+  --limit <number>            Number of issues
+  --include-archived          Include archived issues
+  --json                      Output as JSON
 ```
 
-**Options:**
-- `-t, --title <text>`: Issue title (required)
-- `--team <name>`: Team name, key, or ID (required)
-- `-d, --description <text>`: Issue description (markdown supported)
-- `-a, --assignee <name>`: Assignee name or ID
-- `-s, --state <name>`: State name or ID
-- `-p, --priority <0-4>`: Priority (0=None, 1=Urgent, 2=High, 3=Normal, 4=Low)
-- `-l, --labels <names>`: Comma-separated label names or IDs
-- `--due-date <YYYY-MM-DD>`: Due date
-- `--project <name>`: Project name or ID
-- `-c, --cycle <name>`: Cycle name or ID
-- `--parent <id>`: Parent issue ID
-- `--delegate <emails>`: Comma-separated delegate emails or names
-- `--links <ids>`: Comma-separated issue IDs to link (e.g. ENG-123,ENG-124)
+## Comments
 
-#### Update Issue
-
-**Options:**
-- `--title <text>`: Issue title
-- `--description <text>`: Issue description (markdown supported)
-- `-a, --assignee <name>`: Assignee name or ID (use "none" to clear)
-- `-s, --state <name>`: State name or ID
-- `-p, --priority <0-4>`: Priority (0=None, 1=Urgent, 2=High, 3=Normal, 4=Low)
-- `-l, --labels <names>`: Comma-separated label names or IDs
-- `--due-date <YYYY-MM-DD>`: Due date (use "none" to clear)
-- `--project <name>`: Project name or ID
-- `-c, --cycle <name>`: Cycle name or ID
-- `--parent <id>`: Parent issue ID
-- `-e, --estimate <number>`: Story points estimate
-- `--delegate <emails>`: Comma-separated delegate emails (use "none" to clear)
-- `--links <ids>`: Comma-separated issue IDs to link
-
+### List comments
 ```bash
-# Update single field
-lc issue update ENG-123 --state "In Progress"
-
-# Update estimate (story points)
-lc issue update ENG-123 --estimate 8
-
-# Update multiple fields
-lc issue update ENG-123 \
-  --title "Updated title" \
-  --assignee "Jane Doe" \
-  --priority 1 \
-  --state "In Review"
-
-# Add estimate and delegates
-lc issue update ENG-123 \
-  --estimate 5 \
-  --delegate "john@example.com,jane@example.com"
-
-# Link to other issues
-lc issue update ENG-123 --links "ENG-124,ENG-125"
-
-# Remove assignee
-lc issue update ENG-123 --assignee none
-
-# Clear delegates
-lc issue update ENG-123 --delegate none
-
-# Clear due date
-lc issue update ENG-123 --due-date none
+lc comment list <issue-id> [--json]
 ```
 
-#### List My Issues
+### Add comment
 ```bash
-# List issues assigned to you
-lc issue mine
-
-# Filter by state
-lc issue mine --state "In Progress"
-
-# Include archived
-lc issue mine --include-archived
-
-# Limit results
-lc issue mine --limit 10
+lc comment add <issue-id> [options]
+  -b, --body <text>           Comment body (required)
+  -p, --parent <id>           Parent comment ID for replies
 ```
 
-### Comments
+## Teams
 
-#### List Comments
+### List teams
 ```bash
-# List comments on an issue
-lc comment list ENG-123
-
-# JSON output
-lc comment list ENG-123 --json
+lc team list [options]
+  -q, --query <text>          Search teams
+  --limit <number>            Number of teams
+  --include-archived          Include archived teams
+  --json                      Output as JSON
 ```
 
-#### Add Comment
+### Get team
 ```bash
-# Add a comment
-lc comment add ENG-123 --body "This is a comment"
-
-# Add comment with markdown
-lc comment add ENG-123 --body "**Important:** Please review
-- Item 1
-- Item 2"
-
-# Reply to a comment
-lc comment add ENG-123 --body "Reply text" --parent <comment-id>
+lc team get <name-or-key> [--json]
 ```
 
-### Teams
+## Users
 
-#### List Teams
+### List users
 ```bash
-# List all teams
-lc team list
-
-# Search teams
-lc team list --query "engineering"
-
-# Include archived teams
-lc team list --include-archived
-
-# JSON output
-lc team list --json
+lc user list [options]
+  -q, --query <text>          Search users
+  --active                    Only active users
+  --include-archived          Include archived users
+  --limit <number>            Number of users
+  --json                      Output as JSON
 ```
 
-#### Get Team Details
+### Get user
 ```bash
-# Get team by key
-lc team get ENG
-
-# Get team by name
-lc team get "Engineering"
-
-# JSON output
-lc team get ENG --json
+lc user get <name-or-email> [--json]
 ```
 
-### Users
+## Projects
 
-#### List Users
+### List projects
 ```bash
-# List all users
-lc user list
-
-# Search users
-lc user list --query "john"
-
-# Include inactive users
-lc user list --include-inactive
-
-# JSON output
-lc user list --json
+lc project list [options]
+  -t, --team <name>           Filter by team
+  -s, --state <name>          Filter by state
+  -q, --query <text>          Search projects
+  --limit <number>            Number of projects
+  --include-archived          Include archived projects
+  --json                      Output as JSON
 ```
 
-#### Get User Details
+### Get project
 ```bash
-# Get user by name
-lc user get "John Doe"
-
-# Get user by email
-lc user get "john@example.com"
-
-# JSON output
-lc user get "John Doe" --json
+lc project get <name-or-id> [--json]
 ```
 
-### Projects
-
-#### List Projects
+### Create project
 ```bash
-# List all projects
-lc project list
-
-# Filter by team
-lc project list --team ENG
-
-# Filter by state
-lc project list --state started
-
-# Search projects
-lc project list --query "Q4"
-
-# Include archived
-lc project list --include-archived
+lc project create [options]
+  -n, --name <text>           Project name (required)
+  -t, --team <name>           Team (required)
+  -d, --description <text>    Description
+  --lead <name>               Lead user
+  -s, --state <name>          State (planned, started, completed, canceled)
+  --start-date <YYYY-MM-DD>   Start date
+  --target-date <YYYY-MM-DD>  Target date
 ```
 
-#### Get Project Details
+### Update project
 ```bash
-# Get project by name or ID
-lc project get "Q4 Goals"
-
-# JSON output
-lc project get "Q4 Goals" --json
+lc project update <id> [options]
+  -n, --name <text>           Project name
+  -d, --description <text>    Description
+  --lead <name>               Lead user
+  -s, --state <name>          State
+  --start-date <YYYY-MM-DD>   Start date
+  --target-date <YYYY-MM-DD>  Target date
 ```
 
-#### Create Project
-```bash
-# Basic project creation
-lc project create --name "New Project" --team ENG
+## Labels
 
-# Full project creation
-lc project create \
-  --name "Q1 2026 Goals" \
-  --team ENG \
-  --description "Quarterly objectives" \
-  --lead "John Doe" \
-  --state planned \
-  --start-date "2026-01-01" \
-  --target-date "2026-03-31"
+### List labels
+```bash
+lc label list [options]
+  -t, --team <name>           Filter by team
+  --limit <number>            Number of labels
+  --json                      Output as JSON
 ```
 
-#### Update Project
+### Create label
 ```bash
-# Update project fields
-lc project update <project-id> \
-  --name "Updated Name" \
-  --state started \
-  --lead "Jane Doe"
+lc label create [options]
+  -n, --name <text>           Label name (required)
+  -c, --color <hex>           Color in hex format (required)
+  -d, --description <text>    Description
+  -t, --team <name>           Team (optional, workspace label if not specified)
 ```
 
-### Labels
+## Workflow States
 
-#### List Labels
+### List states
 ```bash
-# List all labels
-lc label list
-
-# Filter by team
-lc label list --team ENG
-
-# Search labels
-lc label list --name "bug"
-
-# JSON output
-lc label list --json
+lc status list --team <name> [--json]
 ```
 
-### Workflow States
-
-#### List States
+### Get state
 ```bash
-# List states for a team
-lc status list --team ENG
-
-# JSON output
-lc status list --team ENG --json
+lc status get <name-or-id> --team <name> [--json]
 ```
 
-### Cycles
+## Cycles
 
-#### List Cycles
+### List cycles
 ```bash
-# List all cycles for a team
-lc cycle list --team ENG
+lc cycle list --team <name> [options]
+  --type <type>               Type (current, previous, next, all)
+  --limit <number>            Number of cycles
+  --json                      Output as JSON
+```
 
-# Get current cycle
-lc cycle list --team ENG --type current
+## Documents
 
-# Get previous cycle
-lc cycle list --team ENG --type previous
+### List documents
+```bash
+lc document list [options]
+  -q, --query <text>          Search documents
+  --project <id>              Filter by project
+  --creator <id>              Filter by creator
+  --limit <number>            Number of documents
+  --include-archived          Include archived documents
+  --json                      Output as JSON
+```
 
-# Get next/upcoming cycle
-lc cycle list --team ENG --type next
+### Get document
+```bash
+lc document get <id-or-slug> [--json]
+```
 
-# JSON output
-lc cycle list --team ENG --json
+## Other Commands
+
+```bash
+lc doctor                     Check configuration and connection
+lc version                    Show version
+lc --help                     Show help
+lc <command> --help          Show command help
 ```
 
 ## Output Formats
 
-### Human-Readable Format (Default)
+- **Default**: Human-readable table format with colors
+- **JSON**: Use `--json` flag for machine-readable output
 
-Linear CLI uses beautiful table formatting with:
-- Proper Unicode and emoji support
-- Colored output for better readability
-- Automatic column width adjustment
-- Korean/CJK character support
-
-Example:
-```
-Found 5 issues:
-ID       Title                          State        Assignee    
-─────────────────────────────────────────────────────────────────
-ENG-123  Fix login bug                  In Progress  John Doe    
-ENG-124  Add dark mode                  Todo         Jane Smith  
-ENG-125  Performance optimization       In Review    Bob Wilson  
-```
-
-### JSON Format
-
-Use the `--json` flag for machine-readable output:
 ```bash
-lc issue list --json | jq '.[].title'
+# Examples
+lc issue list --team ENG --json | jq '.[].title'
 lc issue get ENG-123 --json | jq '.state.name'
 ```
-
-## Advanced Usage
-
-### Shell Aliases
-
-Add useful aliases to your shell configuration:
-```bash
-# ~/.bashrc or ~/.zshrc
-alias lci="lc issue"
-alias lcim="lc issue mine"
-alias lcic="lc issue create"
-alias lcil="lc issue list"
-alias lct="lc team"
-alias lcp="lc project"
-```
-
-### Scripting Examples
-
-#### Create Multiple Issues from File
-```bash
-#!/bin/bash
-while IFS=',' read -r title description assignee; do
-  lc issue create \
-    --title "$title" \
-    --description "$description" \
-    --assignee "$assignee" \
-    --team ENG
-done < issues.csv
-```
-
-#### Export Issues to CSV
-```bash
-lc issue list --team ENG --json | \
-  jq -r '.[] | [.identifier, .title, .state.name, .assignee.name // "Unassigned"] | @csv' \
-  > issues.csv
-```
-
-#### Daily Standup Report
-```bash
-#!/bin/bash
-echo "=== My Issues ==="
-echo "In Progress:"
-lc issue mine --state "In Progress" --json | jq -r '.[].title'
-echo ""
-echo "Todo:"
-lc issue mine --state "Todo" --json | jq -r '.[].title'
-```
-
-### Integration with Other Tools
-
-#### fzf Integration
-```bash
-# Interactive issue picker
-issue_id=$(lc issue list --team ENG --json | \
-  jq -r '.[] | "\(.identifier) \(.title)"' | \
-  fzf --preview 'lc issue get {1}' | \
-  awk '{print $1}')
-  
-lc issue get "$issue_id"
-```
-
-#### Git Commit Integration
-```bash
-# Add Linear issue ID to commit message
-git commit -m "$(lc issue get ENG-123 --json | jq -r '"[\(.identifier)] \(.title)"'): Your changes"
-```
-
-## Troubleshooting
-
-### Common Issues
-
-#### API Key Not Found
-```
-Error: No API key configured. Run "lc init" first.
-```
-**Solution:** Run `lc init` and enter your Linear API key.
-
-#### Connection Issues
-```
-Error: Failed to connect to Linear API
-```
-**Solution:** 
-1. Check your internet connection
-2. Verify API key with `lc doctor`
-3. Ensure Linear's API is accessible
-
-#### Entity Not Found
-```
-Error: Entity not found: Issue - Could not find referenced Issue.
-```
-**Solution:** Verify the issue ID is correct and you have access to it.
-
-#### Permission Denied
-```
-Error: You don't have permission to perform this action
-```
-**Solution:** Check your Linear workspace permissions for the resource.
-
-### Debug Mode
-
-Enable debug output with environment variables:
-```bash
-DEBUG=* lc issue list
-NODE_ENV=development lc issue get ENG-123
-```
-
-### Getting Help
-
-#### Command Help
-```bash
-# General help
-lc --help
-
-# Command-specific help
-lc issue --help
-lc issue create --help
-```
-
-#### Version Information
-```bash
-lc --version
-```
-
-## Best Practices
-
-1. **Use Team Keys**: Use short team keys (e.g., `ENG`) instead of full names for faster typing
-2. **Leverage JSON + jq**: Combine JSON output with jq for powerful data manipulation
-3. **Set Defaults**: Create shell functions for common operations with default values
-4. **Batch Operations**: Use shell loops for bulk operations instead of manual repetition
-5. **Regular Updates**: Keep the CLI updated for latest features and bug fixes
-
-## API Rate Limits
-
-Linear API has rate limits. The CLI respects these limits but for bulk operations, consider:
-- Adding delays between requests in scripts
-- Using batch operations where available
-- Caching results when appropriate
-
-## Security
-
-- API keys are stored locally in `~/.linearctl/config.json`
-- Never commit your API key to version control
-- Use environment variables for CI/CD: `LINEAR_API_KEY=xxx lc issue list`
-- Regularly rotate your API keys
-
-## Contributing
-
-Contributions are welcome! Please see the project repository for:
-- Contributing guidelines
-- Development setup
-- Testing procedures
-- Code style guide
-
-## License
-
-MIT License - see LICENSE file for details
-
-## Support
-
-- **Issues**: Report bugs on the GitHub repository
-- **Documentation**: Check this guide and README.md
-- **Linear API**: Refer to [Linear API Documentation](https://developers.linear.app)
-
----
-
-*linearctl is not officially affiliated with Linear. It's a community tool built using Linear's public API.*
